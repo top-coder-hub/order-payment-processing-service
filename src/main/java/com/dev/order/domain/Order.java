@@ -5,6 +5,7 @@
  */
 package com.dev.order.domain;
 
+import com.dev.order.domain.exception.InvalidOrderStateException;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -28,16 +29,8 @@ public class Order {
         return id;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public Long getCustomerId() {
         return customerId;
-    }
-
-    public void setCustomerId(Long customerId) {
-        this.customerId = customerId;
     }
 
     public BigDecimal getTotalAmount() {
@@ -78,5 +71,23 @@ public class Order {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+    public void markAsPaid() {
+        if(this.status != OrderStatus.CREATED) {
+            throw new InvalidOrderStateException("ORDER.INVALID_STATE.PAYMENT", "Only CREATED orders can be marked as PAID.");
+        }
+        this.status = OrderStatus.PAID;
+    }
+    public void cancel() {
+        if(this.status != OrderStatus.CREATED) {
+            throw new InvalidOrderStateException("ORDER.INVALID_STATE.CANCELLATION", "Only CREATED orders can be CANCELLED.");
+        }
+        this.status = OrderStatus.CANCELLED;
+    }
+    public void markAsShipped() {
+        if(this.status != OrderStatus.PAID) {
+            throw new InvalidOrderStateException("ORDER.INVALID_STATE.SHIPPING", "Only PAID orders can be marked as SHIPPED.");
+        }
+        this.status = OrderStatus.SHIPPED;
     }
 }
