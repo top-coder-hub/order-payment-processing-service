@@ -13,17 +13,39 @@ import java.time.LocalDateTime;
 
 
 @Entity
+@Table(
+        name = "orders", indexes = {
+                @Index(name = "idx_customer", columnList = "customer_id"),
+        @Index(name = "idx_status", columnList = "status"),
+        @Index(name = "idx_created", columnList = "createdAt")
+})
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "order_id")
     private Long id;
+    @Column(name = "customer_id", nullable = false)
     private Long customerId;
+    @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalAmount;
+    @Column(nullable = false, length = 3)
     private String currency;
-    @Enumerated(EnumType.STRING)
+    @Column(nullable = false) @Enumerated(EnumType.STRING)
     private OrderStatus status;
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+    @Column(name = "updated_At", nullable = false)
     private LocalDateTime updatedAt;
+
+    protected Order() {
+    }
+
+    public Order(Long customerId, BigDecimal totalAmount, String currency, OrderStatus status) {
+        this.customerId = customerId;
+        this.totalAmount = totalAmount;
+        this.currency = currency;
+        this.status = status;
+    }
 
     public Long getId() {
         return id;

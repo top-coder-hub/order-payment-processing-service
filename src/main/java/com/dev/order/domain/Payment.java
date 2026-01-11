@@ -11,32 +11,58 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(
+        name = "payments", indexes = {
+                @Index(name = "idx_order", columnList = "order_id"),
+                @Index(name = "idx_idempotency", columnList = "idempotency_key")
+})
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "payment_id")
     private Long paymentId;
-    private Long orderId;
+    @Column(name = "amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
-    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 3)
+    private String currency;
+    @Column(nullable = false) @Enumerated(EnumType.STRING)
     private PaymentStatus status;
+    @Column(name = "idempotency_key", nullable = false, unique = true, length = 128)
 
     private String idempotencyKey;
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false)
+    private Order order;
+    public Order getOrder() {
+        return order;
+    }
+
+    protected Payment() {
+    }
+
+    public Payment(Order order, BigDecimal amount, String currency, PaymentStatus status) {
+        this.order = order;
+        this.amount = amount;
+        this.currency = currency;
+        this.status = status;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
 
     public Long getPaymentId() {
         return paymentId;
     }
 
-    public void setPaymentId(Long paymentId) {
-        this.paymentId = paymentId;
-    }
-
     public Long getOrderId() {
-        return orderId;
-    }
-
-    public void setOrderId(Long orderId) {
-        this.orderId = orderId;
+        return order.getId();
     }
 
     public BigDecimal getAmount() {
@@ -57,10 +83,6 @@ public class Payment {
 
     public String getIdempotencyKey() {
         return idempotencyKey;
-    }
-
-    public void setIdempotencyKey(String idempotencyKey) {
-        this.idempotencyKey = idempotencyKey;
     }
 
     public LocalDateTime getCreatedAt() {
