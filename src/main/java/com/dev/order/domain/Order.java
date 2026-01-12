@@ -5,7 +5,7 @@
  */
 package com.dev.order.domain;
 
-import com.dev.order.domain.exception.InvalidOrderStateException;
+import com.dev.order.exception.InvalidOrderStateException;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;

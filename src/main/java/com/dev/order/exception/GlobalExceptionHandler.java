@@ -3,7 +3,7 @@
  * Date: 09/01/26
  * Time: 10:20 pm
  */
-package com.dev.order.domain.exception;
+package com.dev.order.exception;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
