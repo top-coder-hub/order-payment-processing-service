@@ -9,10 +9,14 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.dev</groupId>
-	<artifactId>order</artifactId>
+	<artifactId>order-payment-processing-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>order</name>
-	<description>Flagship Order and Payment Processing Service</description>
+	<name>Order Payment Processing Service</name>
+	<description>
+		Production-grade backend service for order management and payment processing,
+		designed with strong guarantees around transactional consistency,
+		idempotency, and failure handling.
+	</description>
 	<url/>
 	<licenses>
 		<license/>
