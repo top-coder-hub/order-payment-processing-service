@@ -66,7 +66,7 @@ Validation can produce multiple field errors
         "amount": "must be > 0",
         "currency": "must be 3-letter ISO code"
     },
-    "retryable": true,
+    "retryable": false,
     "timestamp": "2026-01-15T16:18:35.243Z",
     "traceId": "c83d7ef2-9981-473b-bb43-9f2ff95fd532"
 }
@@ -92,13 +92,15 @@ Validation can produce multiple field errors
 
 ### 3. Not found errors (Missing resource)
 
-**Example:** order not found, customer not foundExpected Http: 404
+**Example:** order not found, customer not found
+
+**Expected Http:** 404
 
 **Front-end action:** Invalid path, retry with correct resource identity
 
 ### 4. Server/ Internal error (Infra/ DB/ Crash)
 
-**Example:** DB pool exhaustion, the **mid-commit** server crash, DB deadlocks
+**Example:** The **mid-commit** server crash, DB deadlocks
 
 **Expected Http:** 500
 
@@ -107,55 +109,6 @@ Validation can produce multiple field errors
 **Expected Http:** 504
 
 **Front-end action:** Safe to retry with the same payload + idempotency
-
-
-## V1 Error Registry
-
-### Category A: Validation errors (400)
-
-**Nature:** Input-correctable failures
-
-| errorCode               | meaning                |
-|:------------------------|:-----------------------|
-| BAD_JSON                | malformed JSON         |
-| INVALID_AMOUNT          | invalid amount format  |
-| INVALID_CURRENCY_FORMAT | currency must be ISO-3 |
-| FIELD_VALIDATION_FAILED | bean validation failed |
-| ID_REQUIRED             | identifier missing     |
-
-### Category B: Business errors (409)
-
-**Nature:** Workflow failures
-
-| errorCode                | meaning                                  |
-|:-------------------------|:-----------------------------------------|
-| INVALID_ORDER_STATE      | cannot pay non-CREATED orders            |
-| ORDER_AMOUNT_MISMATCH    | payload vs order mismatch                |
-| CURRENCY_MISMATCH        | payload vs order mismatch                |
-| PAYMENT_ALREADY_EXISTS   | idempotent retry scenario                |
-| DUPLICATE_PAYMENT        | double charging attempt (non-idempotent) |
-
-### Category C: Resource errors (404)
-
-**Nature:** Missing resources failures
-
-| errorCode          | meaning             |
-|:-------------------|:--------------------|
-| ORDER_NOT_FOUND    | order id missing    |
-| CUSTOMER_NOT_FOUND | customer id missing |
-
-
-### Category D: Server/ Internal errors (500, 504)
-
-**Nature:** Retry-safe failures
-
-| errorCode               | status | meaning (User Facing)                                                       | Internal Log (Private)                                                  |
-|:------------------------|:-------|:----------------------------------------------------------------------------|:------------------------------------------------------------------------| 
-| DB_ERROR                | 500    | "An unexpected error occurred."                                             | Connection timeout to RDS                                               | 
-| DEADLOCK                | 500    | "An unexpected error occurred."                                             | Deadlock on Order table                                                 |
-| INTERNAL_SERVER_ERROR   | 500    | "An unexpected error occurred. Our team has been notified."                 | java.lang.NullPointerException at PaymentService.java:142               |
-| SERVICE_UNAVAILABLE     | 500    | "We are currently experiencing high traffic. Please try again in a moment." | HikariPool-1 connection timeout: DB pool exhausted (100/100 active).    |
-| GATEWAY_TIMEOUT         | 504    | "System is taking too long to respond. Please try again."                   | GatewayTimeout: Downstream Stripe API failed to respond within 5000ms.  |
 
 
 ## Mapping strategies
@@ -178,7 +131,7 @@ Handled as:
 
 Handled as:
 
-500/ 504 -> Retry advice
+500/ 503/ 504 -> Retry advice
 
 
 ## Domain-To-Http Mapping Table
@@ -215,14 +168,14 @@ Handled as:
 
 ## Infra-To-Http Mapping Table
 
-| Infra Failure                | status | errorCode             |
-|:-----------------------------|:-------|:----------------------|
-| Database connection          | 500    | SERVICE_UNAVAILABLE   |
-| Database pool exhaustion     | 500    | SERVICE_UNAVAILABLE   |
-| Database deadlocks           | 500    | INTERNAL_SERVER_ERROR |
-| Server crash                 | 500    | INTERNAL_SERVER_ERROR |
-| Unknown                      | 500    | INTERNAL_SERVER_ERROR |
-| Network time-outs            | 504    | GATEWAY_TIMEOUT       |
+| Infra Failure         | status | errorCode             |
+|:----------------------|:-------|:----------------------|
+| DB connection timeout | 500    | SERVICE_UNAVAILABLE   |
+| DB pool exhaustion    | 503    | SERVICE_UNAVAILABLE   |
+| DB deadlocks          | 500    | INTERNAL_SERVER_ERROR |
+| Server crash          | 500    | INTERNAL_SERVER_ERROR |
+| Unknown               | 500    | INTERNAL_SERVER_ERROR |
+| Network timeout       | 504    | GATEWAY_TIMEOUT       |
 
 
 
@@ -230,12 +183,12 @@ Handled as:
 
 ### Generic:
 
-| status   | client action                 |
-|:---------|:------------------------------|
-| 400      | Never retry same payload      |
-| 404      | Retry with corrected identity |
-| 409      | Abort & Correct workflow      |
-| 500/ 504 | Safe retry with same payload  |
+| status        | client action                 |
+|:--------------|:------------------------------|
+| 400           | Never retry same payload      |
+| 404           | Retry with corrected identity |
+| 409           | Abort & Correct workflow      |
+| 500/ 503/ 504 | Safe retry with same payload  |
 
 
 
