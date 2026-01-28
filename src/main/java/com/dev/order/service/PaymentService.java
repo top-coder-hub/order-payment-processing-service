@@ -6,12 +6,11 @@
 package com.dev.order.service;
 
 import com.dev.order.domain.Order;
-import com.dev.order.domain.OrderStatus;
+import com.dev.order.domain.OrderState;
 import com.dev.order.domain.Payment;
-import com.dev.order.domain.PaymentStatus;
+import com.dev.order.domain.PaymentState;
 import com.dev.order.dto.PaymentRequest;
 import com.dev.order.dto.PaymentResponse;
-import com.dev.order.exception.BusinessRulesViolationException;
 import com.dev.order.exception.*;
 import com.dev.order.repository.OrderRepository;
 import com.dev.order.repository.PaymentRepository;
@@ -36,19 +35,24 @@ public class PaymentService {
         //Return the existing  payment status if payment already done
         if(payment.isPresent()) {
             Payment existingPayment = payment.get();
-            var existingPaymentResponse = new PaymentResponse(existingPayment.getPaymentId(), existingPayment.getOrderId(), existingPayment.getAmount(), existingPayment.getStatus(), existingPayment.getCreatedAt());
-            return existingPaymentResponse;
+            return new PaymentResponse(
+                    existingPayment.getPaymentId(),
+                    existingPayment.getOrderId(),
+                    existingPayment.getAmount(),
+                    existingPayment.getPaymentState(),
+                    existingPayment.getCreatedAt()
+            );
         }
         //Check order existence
         Order existingOrder = orderRepository.findById(orderId).orElseThrow(
                 () -> new OrderNotFoundException("ORDER_NOT_FOUND", "The requested order with ID " + orderId + " was not found in the system."));
         //Check if existing order status is in CREATED state
-        if(existingOrder.getStatus() != OrderStatus.CREATED) {
+        if(existingOrder.getOrderState() != OrderState.CREATED) {
             throw new InvalidOrderStateException(
                     "INVALID_ORDER_STATE", "Cannot process payment on order " + orderId + ", because Order is currently not in 'CREATED' state.");
         }
         //Check if existing order amount matches the new payment request amount
-        if(!Objects.equals(existingOrder.getTotalAmount(), request.amount())) {
+        if(existingOrder.getTotalAmount().compareTo(request.amount()) != 0) {
             throw new OrderAmountMismatchException(
                     "ORDER_AMOUNT_MISMATCH", "The requested payment amount (" + request.amount() + "), does not match the calculated order amount (" + existingOrder.getTotalAmount() + ").");
         }
@@ -58,13 +62,17 @@ public class PaymentService {
                     "ORDER_CURRENCY_MISMATCH", "The requested payment currency (" + request.currency() + "), does not match the order currency (" + existingOrder.getCurrency() + ").");
         }
         //persist new payment
-        Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), PaymentStatus.COMPLETED);
+        Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), PaymentState.COMPLETED, idempotencyKey);
         Payment savedNewPayment = paymentRepository.save(newPayment);
         //Mark payment status of existing order as PAID & merge
         existingOrder.markAsPaid();
         Order savedExistingOrder = orderRepository.save(existingOrder);
-        var newPaymentResponse = new PaymentResponse(
-                savedNewPayment.getPaymentId(), savedNewPayment.getOrderId(), savedNewPayment.getAmount(), savedNewPayment.getStatus(), savedNewPayment.getCreatedAt());
-        return newPaymentResponse;
+        return new PaymentResponse(
+                savedNewPayment.getPaymentId(),
+                savedNewPayment.getOrderId(),
+                savedNewPayment.getAmount(),
+                savedNewPayment.getPaymentState(),
+                savedNewPayment.getCreatedAt()
+        );
     }
 }

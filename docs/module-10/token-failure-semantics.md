@@ -121,11 +121,11 @@ message.
 
 ## 5. Summary Table
 
-| Status | Used When | Security Goal |
-|------|----------|---------------|
-| 401 | Identity missing or invalid | Block unauthenticated access |
-| 403 | Role not permitted | Enforce permissions |
-| 404 | Resource hidden | Prevent enumeration |
+| Status | Used When                   | Security Goal                |
+|--------|-----------------------------|------------------------------|
+| 401    | Identity missing or invalid | Block unauthenticated access |
+| 403    | Role not permitted          | Enforce permissions          |
+| 404    | Resource hidden             | Prevent enumeration          |
 
 ---
 ## 6. Observability & Compliance

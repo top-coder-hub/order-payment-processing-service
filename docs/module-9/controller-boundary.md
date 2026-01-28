@@ -88,7 +88,7 @@ Service must check whether the user is allowed to process payment.
 **Request:** userId = 976
 
 **Response:** 
-* 403 access denied
+* 404 NOT FOUND (cloaked)
 * userId must match order.customerId
 
 ### 2. Business validation rules
@@ -117,7 +117,10 @@ orderState = CREATED
     "currency": "USD"
 }
 
-**Apply:** apply discount if order amount is > 10000.
+**Apply**: 
+
+**Strict Amount & Currency Locking**. Check that `request.amount` equals 
+`order.totalAmount`. This prevents partial payments and ensures the transaction fulfills the financial obligation exactly.
 
 ### 4. Execute atomic DB operations
 
@@ -275,29 +278,29 @@ Process payment for an order.
 **Retry Advice:** Retry with same payload and same idempotency key.
 
 ### Error semantics categories:
-| category       | status   | retry             | meaning              |
-|:---------------|:---------|:------------------|:---------------------|
-| Authentication | 401      | no                | caller unknown       |
-| Authorization  | 403      | no                | caller not permitted |
-| Ownership      | 403      | no                | caller not owner     |
-| Validation     | 400      | no                | client fixable       |
-| Resource       | 404      | yes               | wrong identity       |
-| Conflict       | 409      | no                | lifecycle conflict   |
-| System         | 500/ 504 | yes               | safe retry           |
-| Replay         | 200      | yes               | idempotent           |
+| category       | status        | retry             | meaning              |
+|:---------------|:--------------|:------------------|:---------------------|
+| Authentication | 401           | no                | caller unknown       |
+| Authorization  | 403           | no                | caller not permitted |
+| Ownership      | 404 (cloaked) | no                | caller not owner     |
+| Validation     | 400           | no                | client fixable       |
+| Resource       | 404           | yes               | wrong identity       |
+| Conflict       | 409           | no                | lifecycle conflict   |
+| System         | 500/ 504      | yes               | safe retry           |
+| Replay         | 200           | yes               | idempotent           |
 
 ### Status decision logic
-| Logic              | Status   | Meaning                                    |
-|:-------------------|:---------|:-------------------------------------------|
-| New payment        | 201      | Service processed a new record             |
-| Idempotency replay | 200      | Returning already processed payment        |
-| Malformed input    | 400      | Client correctable input                   |
-| Not found          | 404      | Resource not found                         |
-| System failure     | 500/ 504 | Retry safe                                 |
-| Lifecycle conflict | 409      | Requesting payment for already paid orders |
-| Unauthenticated    | 401      | Authentication failure                     |
-| Unauthorized       | 403      | Authorization failure                      |
-| Ownership conflict | 403      | Denied ownership                           |
+| Logic              | Status        | Meaning                                    |
+|:-------------------|:--------------|:-------------------------------------------|
+| New payment        | 201           | Service processed a new record             |
+| Idempotency replay | 200           | Returning already processed payment        |
+| Malformed input    | 400           | Client correctable input                   |
+| Not found          | 404           | Resource not found                         |
+| System failure     | 500/ 504      | Retry safe                                 |
+| Lifecycle conflict | 409           | Requesting payment for already paid orders |
+| Unauthenticated    | 401           | Authentication failure                     |
+| Unauthorized       | 403           | Authorization failure                      |
+| Ownership conflict | 404 (cloaked) | Denied ownership                           |
 
 
 Controller always takes care of new & existing records in response through boolean flags to return Http Status accordingly.
@@ -315,10 +318,10 @@ Controller always takes care of new & existing records in response through boole
 ## Trace + Idempotency Propagation rules
 Controller must propagate 3 IDs:
 
-| Field | Purpose             |
-| :---- |:--------------------|
-| traceId | distributed tracing |
-| requestId | audit + debugging   |
+| Field          | Purpose             |
+|:---------------|:--------------------|
+| traceId        | distributed tracing |
+| requestId      | audit + debugging   |
 | idempotencyKey | retry semantics     |
 
 

@@ -37,9 +37,9 @@ The application follows a layered architecture with clear separation of concerns
 
 │ ├── Payment
 
-│ ├── OrderStatus
+│ ├── OrderState
 
-│ └── PaymentStatus
+│ └── PaymentState
 
 ├── **service**
 
@@ -57,8 +57,39 @@ The application follows a layered architecture with clear separation of concerns
 
 └── **docs**
 
-
 ---
+
+## Technical Documentation Architecture
+
+This project is built using **Documentation-Driven Development** (DDD). Each architectural pillar is supported by detailed specifications:
+
+### API & Contracts
+
+[Module 02: REST API Design & Contracts](docs/api-contract.md) – Detailed endpoint specifications and request/response models.
+
+[Module 09: Success JSON Contracts](docs/module-9/success-contracts.md) – Success response structure and reconciliation fields.
+
+[Module 09: API Error Contracts](docs/module-9/error-contracts.md) – Error semantics, status codes, and global error handling.
+
+### Business Logic & Resiliency
+
+[Module 07: Payment Test Scenarios](docs/payment-test-scenarios.md) – Functional, idempotency, and concurrency test cases.
+
+[Module 08: Transaction & Consistency](docs/payments-consistency-v1.md) – Atomicity invariants and failure window handling.
+
+[Module 10: Controller Design Boundary](docs/module-10/controller-design.md) – Input validation and HTTP layer responsibilities.
+
+### Security & Identity
+
+[Module 09: Controller Boundary Rules](docs/module-9/controller-boundary.md) – Validation, trace propagation, and security enforcement.
+
+[Module 10: Security & Ownership Model](docs/module-10/security-model.md) – FSM integrity, ownership isolation, and auditability.
+
+[Module 10: Authorization & Ownership](docs/module-10/authorization-ownership.md) – Role matrix and the "Cloaked 404" strategy.
+
+[Module 10: Token Failure Semantics](docs/module-10/token-failure-semantics.md) – Technical mapping for 401, 403, and 404 status codes.
+
+-------
 
 ## Core Domain Modeling
 
@@ -75,10 +106,12 @@ The application follows a layered architecture with clear separation of concerns
 ### Order Lifecycle
 Order transitions are strictly controlled:
 
-CREATED → PAID → CANCELLED
+* `CREATED` ➔ `PAID` (via markAsPaid)
+* `PAID` ➔ `SHIPPED` (via markAsShipped)
+* `CREATED` ➔ `CANCELLED` (via cancel)
 
 
-Invalid transitions are blocked using custom domain exceptions, ensuring business integrity at the entity level.
+**Note:** Invalid transitions are blocked using custom domain exceptions, ensuring business integrity at the entity level.
 
 ---
 
@@ -119,6 +152,19 @@ The database schema is designed for consistency and performance.
 - Indexes for high-frequency queries
 - Explicit column sizing and constraints
 - Schema aligned with domain invariants
+
+### Dual-Layer Defense 
+Combines Spring Data JPA validation with MySQL `CHECK` constraints to enforce valid 
+OrderState transitions at both the application and persistence layers.
+
+### Optimized Indexing 
+Implements a composite index on (customer_id, order_state) to optimize 
+high-frequency order history queries.
+
+### Fintech-Grade Precision
+
+All monetary values (Order total, Payment amount) are standardized to `DECIMAL(19, 4)` 
+to eliminate rounding discrepancies across the distributed system.
 
 ---
 

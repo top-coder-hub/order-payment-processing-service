@@ -194,14 +194,14 @@ Handled as:
 
 ### Business conflict types:
 
-| Conflict type                                                  | Client action                 | Retry |
-|:---------------------------------------------------------------|:------------------------------|:------|
-| Lifecycle                                                      | abort                         | no    |
-| Value                                                          | correct amount                | no    |
-| Currency                                                       | correct currency              | no    | 
-| Duplicate                                                      | abort & investigate           | no    |
-| Payload collision                                              | same payload + Different Key  | no    |
-| Idempotent retry                                               | Same payload + same key       | yes   |
+| Conflict type                                                  | Client action                | Retry |
+|:---------------------------------------------------------------|:-----------------------------|:------|
+| Lifecycle                                                      | abort                        | no    |
+| Value                                                          | correct amount               | no    |
+| Currency                                                       | correct currency             | no    | 
+| Duplicate                                                      | abort & investigate          | no    |
+| Payload collision                                              | same payload + different Key | no    |
+| Idempotent retry                                               | same payload + same key      | yes   |
 
 
 

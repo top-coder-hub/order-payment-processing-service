@@ -1,6 +1,6 @@
 package com.dev.order.domain;
 
-public enum OrderStatus {
+public enum OrderState {
     CREATED,
     PAID,
     CANCELLED,

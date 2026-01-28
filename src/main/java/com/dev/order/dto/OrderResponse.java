@@ -5,7 +5,7 @@
  */
 package com.dev.order.dto;
 
-import com.dev.order.domain.OrderStatus;
+import com.dev.order.domain.OrderState;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,7 +15,7 @@ public record OrderResponse(
         Long customerId,
         BigDecimal totalAmount,
         String currency,
-        OrderStatus status,
+        OrderState orderState,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {}

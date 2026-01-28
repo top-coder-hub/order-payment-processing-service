@@ -26,7 +26,7 @@ At-least-once delivery + Idempotency = Effectively Exactly-Once Execution
 #### Scenario - 1:
 
 **Pre-condition:**
-orders.status = `CREATED`
+orderState = `CREATED`
 
 **Request:**
 Valid payment
@@ -35,7 +35,7 @@ Valid payment
 
 **1st call:** 
 * 201 Created
-* Order status -> `PAID`
+* orderState -> `PAID`
 * New Payment inserted
 
 **2nd call (retry):**
@@ -44,7 +44,7 @@ Valid payment
 * Idempotent response
 #### Scenario - 2:
 **Pre-condition:**
-orders.status = `PAID` / `CANCELLED` / `SHIPPED`
+orderState = `PAID` / `CANCELLED` / `SHIPPED`
 
 **Request:**
 Valid payment
@@ -61,7 +61,7 @@ Valid payment
 **Scenario - 1: Input validation failure**
 
 **Pre-condition:**
-orders.status = `CREATED`
+orderState = `CREATED`
 
 **Request:**
 `POST` `/orders/5/payments`
@@ -112,7 +112,7 @@ Retry with valid order id
 **Scenario - 3: Business logic failure**
 
 **Pre-condition:**
-orders.status = `PAID`
+orderState = `PAID`
 
 **Request:**
 Valid payment
@@ -128,7 +128,7 @@ Attempt payment only for orders with `CREATED` state
 **Scenario - 4: DB constraint failure**
 
 **Pre-condition:**
-orders.status = `CREATED`
+orderState = `CREATED`
 
 **Request:**
 `POST` `/orders/99/payments`
@@ -148,15 +148,17 @@ orders.status = `CREATED`
 
 * 400 Bad request
 * INVALID_CURRENCY_FORMAT
-* Cause: Domain validation or DB constraint violation
+* **Cause**: Field failed Controller validation or triggered a Database CHAR(3) constraint violation.
 
 **Professional handle:**
 Retry with valid currency format
 
+**Note:** Business-level currency checks are handled by specific domain exceptions.
+
 **Scenario - 5: Server failure**
 
 **Pre-condition:**
-orders.status = `CREATED`
+orderState = `CREATED`
 
 **Request:**
 Valid payment
@@ -172,7 +174,7 @@ Retry with same payload
 **Scenario - 6: Crash after commit, before response**
 
 **Pre-condition:**
-orders.status = `CREATED`
+orderState = `CREATED`
 
 **Request:**
 Valid payment

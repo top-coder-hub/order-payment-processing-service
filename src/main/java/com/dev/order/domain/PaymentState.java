@@ -1,6 +1,6 @@
 package com.dev.order.domain;
 
-public enum PaymentStatus {
+public enum PaymentState {
     PENDING,
     COMPLETED,
     FAILED

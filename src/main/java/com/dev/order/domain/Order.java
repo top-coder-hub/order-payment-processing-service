@@ -7,6 +7,8 @@ package com.dev.order.domain;
 
 import com.dev.order.exception.InvalidOrderStateException;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,9 +17,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "orders", indexes = {
-                @Index(name = "idx_customer", columnList = "customer_id"),
-        @Index(name = "idx_status", columnList = "status"),
-        @Index(name = "idx_created", columnList = "createdAt")
+                @Index(name = "idx_orders_customer", columnList = "customer_id"),
+                @Index(name = "idx_orders_customer_state", columnList = "customer_id,order_state"), //Composite Index
+                @Index(name = "idx_orders_created", columnList = "created_at")
 })
 public class Order {
     @Id
@@ -26,25 +28,28 @@ public class Order {
     private Long id;
     @Column(name = "customer_id", nullable = false)
     private Long customerId;
-    @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
+    @Column(name = "total_amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal totalAmount;
     @Column(nullable = false, length = 3)
     private String currency;
-    @Column(nullable = false) @Enumerated(EnumType.STRING)
-    private OrderStatus status;
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "order_state", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private OrderState orderState;
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-    @Column(name = "updated_At", nullable = false)
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     protected Order() {
     }
 
-    public Order(Long customerId, BigDecimal totalAmount, String currency, OrderStatus status) {
+    public Order(Long customerId, BigDecimal totalAmount, String currency, OrderState orderState) {
         this.customerId = customerId;
         this.totalAmount = totalAmount;
         this.currency = currency;
-        this.status = status;
+        this.orderState = orderState;
     }
 
     public Long getId() {
@@ -71,45 +76,38 @@ public class Order {
         this.currency = currency;
     }
 
-    public OrderStatus getStatus() {
-        return status;
+    public OrderState getOrderState() {
+        return orderState;
     }
 
-    public void setStatus(OrderStatus status) {
-        this.status = status;
+    protected void setOrderState(OrderState orderState) {
+        this.orderState = orderState;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
     public void markAsPaid() {
-        if(this.status != OrderStatus.CREATED) {
+        if(this.orderState != OrderState.CREATED) {
             throw new InvalidOrderStateException("ORDER.INVALID_STATE.PAYMENT", "Only CREATED orders can be marked as PAID.");
         }
-        this.status = OrderStatus.PAID;
+        this.orderState = OrderState.PAID;
     }
     public void cancel() {
-        if(this.status != OrderStatus.CREATED) {
+        if(this.orderState != OrderState.CREATED) {
             throw new InvalidOrderStateException("ORDER.INVALID_STATE.CANCELLATION", "Only CREATED orders can be CANCELLED.");
         }
-        this.status = OrderStatus.CANCELLED;
+        this.orderState = OrderState.CANCELLED;
     }
     public void markAsShipped() {
-        if(this.status != OrderStatus.PAID) {
+        if(this.orderState != OrderState.PAID) {
             throw new InvalidOrderStateException("ORDER.INVALID_STATE.SHIPPING", "Only PAID orders can be marked as SHIPPED.");
         }
-        this.status = OrderStatus.SHIPPED;
+        this.orderState = OrderState.SHIPPED;
     }
 }

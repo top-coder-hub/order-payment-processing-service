@@ -5,7 +5,7 @@
  */
 package com.dev.order.dto;
 
-import com.dev.order.domain.PaymentStatus;
+import com.dev.order.domain.PaymentState;
 
 
 import java.math.BigDecimal;
@@ -15,6 +15,6 @@ public record PaymentResponse(
         Long paymentId,
         Long orderId,
         BigDecimal amount,
-        PaymentStatus status,
+        PaymentState paymentState,
         LocalDateTime createdAt
 ) {}

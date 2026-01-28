@@ -6,6 +6,7 @@
 package com.dev.order.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,24 +14,25 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "payments", indexes = {
-                @Index(name = "idx_order", columnList = "order_id"),
-                @Index(name = "idx_idempotency", columnList = "idempotency_key")
+                @Index(name = "idx_payments_order", columnList = "order_id")
 })
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "payment_id")
     private Long paymentId;
-    @Column(name = "amount", nullable = false, precision = 19, scale = 2)
+    @Column(name = "amount", nullable = false, precision = 19, scale = 4)
     private BigDecimal amount;
     @Column(nullable = false, length = 3)
     private String currency;
-    @Column(nullable = false) @Enumerated(EnumType.STRING)
-    private PaymentStatus status;
+    @Column(name = "payment_state", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private PaymentState paymentState;
     @Column(name = "idempotency_key", nullable = false, unique = true, length = 128)
 
     private String idempotencyKey;
-    @Column(name = "created_at", nullable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
@@ -42,19 +44,16 @@ public class Payment {
     protected Payment() {
     }
 
-    public Payment(Order order, BigDecimal amount, String currency, PaymentStatus status) {
+    public Payment(Order order, BigDecimal amount, String currency, PaymentState paymentState, String idempotencyKey) {
         this.order = order;
         this.amount = amount;
         this.currency = currency;
-        this.status = status;
+        this.paymentState = paymentState;
+        this.idempotencyKey = idempotencyKey;
     }
 
     public String getCurrency() {
         return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
     }
 
     public Long getPaymentId() {
@@ -69,16 +68,12 @@ public class Payment {
         return amount;
     }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+    public PaymentState getPaymentState() {
+        return paymentState;
     }
 
-    public PaymentStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(PaymentStatus status) {
-        this.status = status;
+    public void setPaymentState(PaymentState paymentState) {
+        this.paymentState = paymentState;
     }
 
     public String getIdempotencyKey() {
@@ -89,7 +84,4 @@ public class Payment {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
 }

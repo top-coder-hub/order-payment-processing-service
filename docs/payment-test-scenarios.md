@@ -24,15 +24,15 @@
    
     order:
    
-    status = CREATED
+    orderState = CREATED
     amount = 100
     currency = USD
 
    **Expected outcome:**
 *    Payment inserted
-*    Order status -> PAID
+*    Order state -> PAID
 *    Return 201 created
-*    Response contains paymentId + status = COMPLETED
+*    Response contains paymentId + paymentState = COMPLETED
 
    **Invariants:**
 *    No second payment exists
@@ -85,7 +85,7 @@
 
 **Pre-condition:**
 
-    order.status = PAID
+    orderState = PAID
 
 **Request:**
 
@@ -102,9 +102,9 @@
 
 **1st call:**
 *    New Payment inserted
-*    Order status -> PAID
+*    orderState -> PAID
 *    Return 201 created
-*    Response contains paymentId + status = COMPLETED
+*    Response contains paymentId + paymentState = COMPLETED
    
 **2nd call:**
 *    Existing payment response
@@ -114,7 +114,7 @@
 
 **Invariants:**
 *    Payment count = 1
-*    Order status -> PAID
+*    orderState -> PAID
 
 ### Scenario 7 - Retry after timeout (gateway error)
 
@@ -146,7 +146,7 @@ Same response as Scenario 6
 ### Successful retry scenario
 
 * payment count = 1
-* order.status = PAID
+* orderState = PAID
 * No duplicate inserts
 * No duplicate state transitions
 * Transaction committed or aborted
@@ -174,7 +174,7 @@ Same response as Scenario 6
 **Expected outcome:**
    
 * Exactly one succeeds
-* Another gets INVALID_ORDER_STATE (409)
+* Another fails with 409 INVALID_ORDER_STATE (Optimistic Lock Failure).
    
 **Forbidden:**
 * 2 completed payments
@@ -208,7 +208,7 @@ Same response as Scenario 6
 
 **Pre-condition:**
 
-    order.status = CANCELLED
+    orderState = CANCELLED
 
 **Expected outcome:**
    
@@ -218,7 +218,7 @@ Same response as Scenario 6
 
 **Pre-condition:**
 
-    order.status = SHIPPED
+    orderState = SHIPPED
 
 **Expected outcome:**
 
@@ -226,9 +226,9 @@ Same response as Scenario 6
 
 ## State Transition Table
 
-| Current order status | Action: Pay | Outcome      |
- |:---------------------|:------------|:-------------|
-| CREATED              | Allowed     | 201 Created  |
-| PAID                 | Denied      | 409 Conflict |
-| CANCELLED            | Denied        | 409 Conflict  |
-| SHIPPED              | Denied        | 409 Conflict  |
+| Current order state | Action: Pay    | Outcome        |
+|:--------------------|:---------------|:---------------|
+| CREATED             | Allowed        | 201 Created    |
+| PAID                | Denied         | 409 Conflict   |
+| CANCELLED           | Denied         | 409 Conflict   |
+| SHIPPED             | Denied         | 409 Conflict   |

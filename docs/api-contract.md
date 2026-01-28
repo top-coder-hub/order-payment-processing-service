@@ -28,7 +28,7 @@ Create a new order resource.
 
 201 created
 * orderId
-* status = CREATED
+* orderState = CREATED
 
 ### ***2. Get order by ID***
 
@@ -53,7 +53,9 @@ orderId
 
 ### ***3. Get orders(Order History)***
 
-`GET` `/orders?customerId=&page=&size=&status=`
+`GET` `/orders?customerId=&page=&size=&orderState=`
+
+**orderState:** Filter by current state (`CREATED`, `PAID`, `SHIPPED`, `CANCELLED`).
 
 **Purpose -**
 Fetch order details with mandatory pagination
@@ -62,7 +64,7 @@ Fetch order details with mandatory pagination
 * customerId
 * page
 * size
-* status
+* orderState
 
 **Reasoning**
 
@@ -92,13 +94,20 @@ Cancel an order as a business action.
 orderId
 
 **Valid only**
-order status = CREATED
+orderState = CREATED
 
 **Response**
 
 * 200 OK -> cancelled
 * 409 Conflict -> invalid state transition
 * 404 Not Found -> invalid orderId
+
+Order State Machine
+---
+
+`CREATED` ➔ `PAID` ➔ `SHIPPED`
+
+`CREATED` ➔ `CANCELLED`
 
 **Payment API - Contract design:**
 ---
@@ -144,7 +153,7 @@ Process payment for an order.
 
 1. `POST` `/orders`
 2. `GET` `/orders/{orderId}`
-3. `GET` `/orders?customerId=&page=&size=&status=`
+3. `GET` `/orders?customerId=&page=&size=&orderState=`
 4. `POST` `/orders/{orderId}/cancel`
 5. `POST` `/orders/{orderId}/payments`
 
@@ -154,7 +163,7 @@ Process payment for an order.
 2. customerId
 3. page
 4. size
-5. Status
+5. orderState
 
 ### **Error contract**
 
@@ -189,24 +198,24 @@ All errors must be consistent.
 
 ### **Status code strategy**
 
-| Scenario     | Status |
-|:-------------|:-------|
-| Create order | 201    |
-| Fetch order  | 200    |
-| Invalid input     | 400    |
-| Order not found   | 404    | 
-| Invalid state transition | 409 |
-| Duplicate payment retry | 200 |
-| Server failure | 500 |
+| Scenario                   | Status |
+|:---------------------------|:-------|
+| Create order               | 201    |
+| Fetch order                | 200    |
+| Invalid input              | 400    |
+| Order not found            | 404    | 
+| Invalid state transition   | 409    |
+| Duplicate payment retry    | 200    |
+| Server failure             | 500    |
 
 
 ### **Idempotency summary**
 
-| Method | Endpoint              | Description      | Idempotent            |
-| :----- |:----------------------|:-----------------|:----------------------| 
-| `GET` | `/orders/{orderId}`          | Retrieve order   | Yes                   |
-| `POST` | `/orders `              | Create new order | NO                    |
-| `POST` | `/orders/{orderId}/payments` | Process payment  | Yes (idempotency-key) |
+| Method | Endpoint                       | Description        | Idempotent            |
+|:-------|:-------------------------------|:-------------------|:----------------------| 
+| `GET`  | `/orders/{orderId}`            | Retrieve order     | Yes                   |
+| `POST` | `/orders `                     | Create new order   | NO                    |
+| `POST` | `/orders/{orderId}/payments`   | Process payment    | Yes (idempotency-key) |
 
 
 ### Final Assessment (Engineer POV)
