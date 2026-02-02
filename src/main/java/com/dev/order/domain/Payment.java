@@ -21,9 +21,9 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "payment_id")
     private Long paymentId;
-    @Column(name = "amount", nullable = false, precision = 19, scale = 4)
+    @Column(name = "amount", nullable = false, precision = 19, scale = 4, updatable = false)
     private BigDecimal amount;
-    @Column(nullable = false, length = 3)
+    @Column(nullable = false, length = 3, updatable = false)
     private String currency;
     @Column(name = "payment_state", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -72,7 +72,7 @@ public class Payment {
         return paymentState;
     }
 
-    public void setPaymentState(PaymentState paymentState) {
+    protected void setPaymentState(PaymentState paymentState) {
         this.paymentState = paymentState;
     }
 
