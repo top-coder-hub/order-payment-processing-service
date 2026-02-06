@@ -5,29 +5,19 @@
  */
 package com.dev.order.exception;
 
-import com.sun.jdi.request.InvalidRequestStateException;
-import io.micrometer.tracing.Tracer;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.BindException;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 
 import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.stream.Collectors;
+
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    private final Tracer tracer;
-    public GlobalExceptionHandler(Tracer tracer) {
-        this.tracer = tracer;
-    }
     private record ErrorResponse (
 
             boolean success,
@@ -40,7 +30,7 @@ public class GlobalExceptionHandler {
             String traceId
     ) {}
     @ExceptionHandler(BusinessRulesViolationException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessRulesViolation(BusinessRulesViolationException e, String traceId) {
+    public ResponseEntity<ErrorResponse> handleBusinessRulesViolation(BusinessRulesViolationException e) {
         ErrorResponse errorResponse = new ErrorResponse(
                 false,
                 e.errStatus,
@@ -49,9 +39,9 @@ public class GlobalExceptionHandler {
                 Map.of("error", e.getMessage()),
                 false,
                 LocalDateTime.now(),
-                traceId
+                resolveTraceId()
         );
-        return ResponseEntity.badRequest().body(errorResponse);
+        return ResponseEntity.status(e.errStatus).body(errorResponse);
     }
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {

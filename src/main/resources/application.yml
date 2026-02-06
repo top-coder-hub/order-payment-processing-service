@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: order-payment-processing-service
+
+logging:
+  pattern:
+    level: "%5p [traceId=%X{traceId} requestId=%X{requestId}]"
