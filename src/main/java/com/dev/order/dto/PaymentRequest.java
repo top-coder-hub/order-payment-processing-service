@@ -13,8 +13,10 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
 public record PaymentRequest(
-        @NotNull @Positive
+        @NotNull(message = "Amount is mandatory")
+        @Positive(message = "Amount must be greater than zero")
         BigDecimal amount,
-        @NotBlank @Pattern(regexp = "^[A-Z]{3}$")
+        @NotBlank(message = "Currency code is mandatory")
+        @Pattern(regexp = "^[A-Z]{3}$", message = "Currency must be a 3-letter uppercase ISO code (e.g., USD, EUR, INR)")
         String currency
 ) {}

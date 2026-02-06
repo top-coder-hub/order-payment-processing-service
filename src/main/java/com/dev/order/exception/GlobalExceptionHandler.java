@@ -67,6 +67,20 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        ErrorResponse error = new ErrorResponse(
+                false,
+                HttpStatus.FORBIDDEN.value(),
+                "ACCESS_DENIED",
+                ex.getMessage(),
+                null,
+                false,
+                LocalDateTime.now(),
+                resolveTraceId()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
     private String resolveTraceId() {
         String traceId = MDC.get("traceId");
         if (traceId != null && !traceId.isBlank()) {

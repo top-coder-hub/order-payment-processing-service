@@ -72,13 +72,13 @@ public class AuthenticationFilterConfig {
      */
     private AuthenticatedUser validateToken(String token) {
         if ("customer-token".equals(token)) {
-            return new AuthenticatedUser("cust-1", UserRole.CUSTOMER);
+            return new AuthenticatedUser(1L, UserRole.CUSTOMER);
         }
         if ("admin-token".equals(token)) {
-            return new AuthenticatedUser("admin-1", UserRole.ADMIN);
+            return new AuthenticatedUser(2L, UserRole.ADMIN);
         }
         if ("system-token".equals(token)) {
-            return new AuthenticatedUser("system", UserRole.SYSTEM);
+            return new AuthenticatedUser(0L, UserRole.SYSTEM);
         }
         return null;
     }

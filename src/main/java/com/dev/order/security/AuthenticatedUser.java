@@ -1,6 +1,6 @@
 package com.dev.order.security;
 
 public record AuthenticatedUser(
-        String userId,
+        Long userId,
         UserRole role
 ) {}

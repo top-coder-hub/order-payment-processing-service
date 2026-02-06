@@ -14,6 +14,8 @@ import com.dev.order.dto.PaymentResponse;
 import com.dev.order.exception.*;
 import com.dev.order.repository.OrderRepository;
 import com.dev.order.repository.PaymentRepository;
+import com.dev.order.security.AuthenticatedUser;
+import com.dev.order.security.RequestContext;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -30,22 +32,29 @@ public class PaymentService {
         this.orderRepository = orderRepository;
     }
     @Transactional
-    public PaymentResponse processPayment(Long orderId, PaymentRequest request, String idempotencyKey) {
+    public PaymentResult processPayment(Long orderId, PaymentRequest request, String idempotencyKey) {
         Optional<Payment> payment = paymentRepository.findByIdempotencyKey(idempotencyKey);
         //Return the existing  payment status if payment already done
         if(payment.isPresent()) {
             Payment existingPayment = payment.get();
-            return new PaymentResponse(
+            PaymentResponse existingPaymentResponse = new PaymentResponse(
                     existingPayment.getPaymentId(),
                     existingPayment.getOrderId(),
                     existingPayment.getAmount(),
                     existingPayment.getPaymentState(),
                     existingPayment.getCreatedAt()
             );
+            return new PaymentResult(existingPaymentResponse, false);
         }
         //Check order existence
         Order existingOrder = orderRepository.findById(orderId).orElseThrow(
                 () -> new OrderNotFoundException("ORDER_NOT_FOUND", "The requested order with ID " + orderId + " was not found in the system."));
+        //Ownership check
+        AuthenticatedUser user = RequestContext.get();
+        if (!existingOrder.getCustomerId().equals(user.userId())) {
+            throw new AccessDeniedException("You are not allowed to pay for this order");
+        }
+
         //Check if existing order status is in CREATED state
         if(existingOrder.getOrderState() != OrderState.CREATED) {
             throw new InvalidOrderStateException(
@@ -67,12 +76,13 @@ public class PaymentService {
         //Mark payment status of existing order as PAID & merge
         existingOrder.markAsPaid();
         Order savedExistingOrder = orderRepository.save(existingOrder);
-        return new PaymentResponse(
+        PaymentResponse newPaymentResponse = new PaymentResponse(
                 savedNewPayment.getPaymentId(),
                 savedNewPayment.getOrderId(),
                 savedNewPayment.getAmount(),
                 savedNewPayment.getPaymentState(),
                 savedNewPayment.getCreatedAt()
         );
+        return new PaymentResult(newPaymentResponse, true);
     }
 }
