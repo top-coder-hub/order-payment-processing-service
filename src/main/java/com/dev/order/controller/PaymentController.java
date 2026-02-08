@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Validated
+@RequestMapping("/api/v1")
 public class PaymentController {
     private final PaymentService paymentService;
     public PaymentController(PaymentService paymentService) {
@@ -45,7 +46,14 @@ public class PaymentController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(paymentResult.paymentResponse());
     }
-    public void authorize() {
+    @GetMapping("/payments/{paymentId}")
+    public ResponseEntity<PaymentResponse> getPayment(@PathVariable Long paymentId) {
+        //Authorization check
+        authorize();
+        PaymentResult paymentResult = paymentService.fetchPayment(paymentId);
+        return ResponseEntity.ok().body(paymentResult.paymentResponse());
+    }
+    private void authorize() {
         AuthenticatedUser user = RequestContext.get();
         if(user == null) {
             throw new UnauthorizedException("Unauthenticated request");

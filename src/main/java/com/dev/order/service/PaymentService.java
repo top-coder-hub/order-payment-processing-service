@@ -85,4 +85,31 @@ public class PaymentService {
         );
         return new PaymentResult(newPaymentResponse, true);
     }
+    public PaymentResult fetchPayment(Long paymentId) {
+        // 1️⃣ Fetch payment or cloak as 404
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(
+                                "Payment not found for the given " + paymentId));
+        // 2️⃣ Fetch owning order or cloak as 404 (defensive)
+        Order order = orderRepository.findById(payment.getOrderId())
+                .orElseThrow(() ->
+                        new PaymentNotFoundException(
+                                "Payment not found for the given " + paymentId));
+        // 3️⃣ Ownership check (cloaked)
+        AuthenticatedUser user = RequestContext.get();
+        if (!order.getCustomerId().equals(user.userId())) {
+            throw new PaymentNotFoundException(
+                    "Payment not found for the given " + paymentId);
+        }
+        PaymentResponse paymentResponse = new PaymentResponse(
+                payment.getPaymentId(),
+                payment.getOrderId(),
+                payment.getAmount(),
+                payment.getPaymentState(),
+                payment.getCreatedAt()
+        );
+        return new PaymentResult(paymentResponse, false);
+    }
+
 }

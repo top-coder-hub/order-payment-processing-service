@@ -71,6 +71,20 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentNotFound(PaymentNotFoundException ex) {
+        ErrorResponse error = new ErrorResponse(
+                false,
+                HttpStatus.NOT_FOUND.value(),
+                "PAYMENT_NOT_FOUND",
+                ex.getMessage(),
+                null,
+                false,
+                LocalDateTime.now(),
+                resolveTraceId()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
     private String resolveTraceId() {
         String traceId = MDC.get("traceId");
         if (traceId != null && !traceId.isBlank()) {

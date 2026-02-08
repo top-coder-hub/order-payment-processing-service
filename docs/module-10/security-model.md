@@ -26,7 +26,7 @@ Goal:
 
 ### Enforcement
 - Bearer Token validated at controller entry
-- Missing / invalid token → **401 UNAUTHENTICATED**
+- Missing / invalid token → **401 UNAUTHORIZED**
 
 **Rationale:**  
 Unauthenticated users must **never reach business logic or resource lookup**.

@@ -29,11 +29,37 @@ The application follows a layered architecture with clear separation of concerns
 - **Documentation Layer** – Explicit API contracts, error models, and consistency rules
 
 ### Project Structure
+**docs**
+
+├── **module-9**
+
+│    ├──—controller-boundary.md
+
+│    ├──—error-contracts.md
+
+│    ├──—success-contracts.md
+
+├── **module-10**
+
+│    ├──—authorization-ownership.md
+
+│    ├──—controller-design.md
+
+│    ├──—security-model.md
+
+│    ├──—token-failure-semantics.md
+
+├── api-contract.md
+
+└── payment-test-scenarios.md
+
+└──payments-consistency-v1.md
+
 **order**
 
 ├── **domain**
 
-│ ├── Order
+│   ├── Order
 
 │ ├── Payment
 
@@ -43,19 +69,67 @@ The application follows a layered architecture with clear separation of concerns
 
 ├── **service**
 
-│ ├── PaymentService
+│   ├── PaymentService
+
+|	├──PaymentResult
 
 ├── **controller**
 
+|  ├──PaymentController
+
+|	├── OrderController
+
 ├── **repository**
+
+|	├──OrderRepository
+
+|	├──PaymentRepository
 
 ├── **dto**
 
+|	├──CreateOrderRequest
+
+|	├──OrderResponse
+
+|	├──PaymentRequest
+
+|	├──PaymentResponse
+
 ├── **exception**
+
+|	├──AccessDeniedException
+
+|	├──BusinessRulesViolationException
+
+|	├──GlobalExceptionHandler
+
+|	├──InvalidOrderStateException
+
+|	├──OrderAmountMismatchException
+
+|	├──OrderNotFoundException
+
+|	├──PaymentCurrencyMismatchException
+
+|	├──UnauthorizedException
+
+|	├──PaymentNotFoundException
 
 ├── **config**
 
-└── **docs**
+│    ├── FilterConfig.java                (RequestId)
+
+│    └── AuthenticationFilterConfig.java
+
+├── **security**
+
+│    ├── RequestContext.java
+
+│    ├── AuthenticatedUser.java
+
+│    └── UserRole.java
+
+
 
 ---
 
@@ -122,6 +196,7 @@ The APIs are designed with clear contracts and predictable behavior.
 - `POST /orders` – Create a new order
 - `POST /payments` – Process payment for an order (idempotent)
 - `GET /orders/{id}` – Fetch order details with payment status
+- `GET /payments/{paymentId}` – Fetch payment details with payment status
 
 API request and response contracts are documented in:
 
