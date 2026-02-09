@@ -7,6 +7,6 @@ package com.dev.order.exception;
 
 public class PaymentCurrencyMismatchException extends BusinessRulesViolationException{
     public PaymentCurrencyMismatchException(String errCode, String reason) {
-        super(409, errCode, reason);
+        super(errCode, reason);
     }
 }

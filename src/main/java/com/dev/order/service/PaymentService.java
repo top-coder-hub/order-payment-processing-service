@@ -48,7 +48,7 @@ public class PaymentService {
         }
         //Check order existence
         Order existingOrder = orderRepository.findById(orderId).orElseThrow(
-                () -> new OrderNotFoundException("ORDER_NOT_FOUND", "The requested order with ID " + orderId + " was not found in the system."));
+                () -> new OrderNotFoundException("The requested order with ID " + orderId + " was not found in the system."));
         //Ownership check
         AuthenticatedUser user = RequestContext.get();
         if (!existingOrder.getCustomerId().equals(user.userId())) {

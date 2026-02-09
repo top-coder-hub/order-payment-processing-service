@@ -7,6 +7,6 @@ package com.dev.order.exception;
 
 public class InvalidOrderStateException extends BusinessRulesViolationException{
     public InvalidOrderStateException(String errCode, String reason) {
-        super(409, errCode, reason);
+        super(errCode, reason);
     }
 }

@@ -5,8 +5,8 @@
  */
 package com.dev.order.exception;
 
-public class OrderNotFoundException extends BusinessRulesViolationException{
-    public OrderNotFoundException(String errCode, String reason) {
-        super(404, errCode, reason);
+public class OrderNotFoundException extends RuntimeException{
+    public OrderNotFoundException(String reason) {
+        super(reason);
     }
 }

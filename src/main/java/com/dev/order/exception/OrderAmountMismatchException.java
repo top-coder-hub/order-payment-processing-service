@@ -7,6 +7,6 @@ package com.dev.order.exception;
 
 public class OrderAmountMismatchException extends BusinessRulesViolationException{
     public OrderAmountMismatchException(String errCode, String reason) {
-        super(409, errCode, reason);
+        super(errCode, reason);
     }
 }

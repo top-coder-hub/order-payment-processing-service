@@ -19,7 +19,6 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private record ErrorResponse (
-
             boolean success,
             Integer status,
             String errorCode,
@@ -30,60 +29,49 @@ public class GlobalExceptionHandler {
             String traceId
     ) {}
     @ExceptionHandler(BusinessRulesViolationException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessRulesViolation(BusinessRulesViolationException e) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                false,
-                e.errStatus,
-                e.errCode,
-                e.reason,
-                Map.of("error", e.getMessage()),
-                false,
-                LocalDateTime.now(),
-                resolveTraceId()
+    public ResponseEntity<ErrorResponse> handleBusinessRulesViolation(BusinessRulesViolationException ex) {
+        return buildError(
+                HttpStatus.CONFLICT,
+                ex.errCode,
+                ex.getMessage(),
+                false
         );
-        return ResponseEntity.status(e.errStatus).body(errorResponse);
     }
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
-        ErrorResponse error = new ErrorResponse(
-                false,
-                HttpStatus.UNAUTHORIZED.value(),
+        return buildError(
+                HttpStatus.UNAUTHORIZED,
                 "UNAUTHORIZED",
                 ex.getMessage(),
-                null,
-                false,
-                LocalDateTime.now(),
-                resolveTraceId()
+                false
         );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
-        ErrorResponse error = new ErrorResponse(
-                false,
-                HttpStatus.FORBIDDEN.value(),
+        return buildError(
+                HttpStatus.FORBIDDEN,
                 "ACCESS_DENIED",
                 ex.getMessage(),
-                null,
-                false,
-                LocalDateTime.now(),
-                resolveTraceId()
+                false
         );
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
     @ExceptionHandler(PaymentNotFoundException.class)
     public ResponseEntity<ErrorResponse> handlePaymentNotFound(PaymentNotFoundException ex) {
-        ErrorResponse error = new ErrorResponse(
-                false,
-                HttpStatus.NOT_FOUND.value(),
+        return buildError(
+                HttpStatus.NOT_FOUND,
                 "PAYMENT_NOT_FOUND",
                 ex.getMessage(),
-                null,
-                false,
-                LocalDateTime.now(),
-                resolveTraceId()
+                false
         );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleOrderNotFound(OrderNotFoundException ex) {
+        return buildError(
+                HttpStatus.NOT_FOUND,
+                "ORDER_NOT_FOUND",
+                ex.getMessage(),
+                false
+        );
     }
     private String resolveTraceId() {
         String traceId = MDC.get("traceId");
@@ -92,5 +80,17 @@ public class GlobalExceptionHandler {
         }
         return MDC.get("requestId");
     }
-
+    private ResponseEntity<ErrorResponse> buildError(HttpStatus status, String errorCode, String reason, boolean retryable) {
+        ErrorResponse error = new ErrorResponse(
+                false,
+                status.value(),
+                errorCode,
+                reason,
+                null,
+                retryable,
+                LocalDateTime.now(),
+                resolveTraceId()
+        );
+        return ResponseEntity.status(status).body(error);
+    }
 }
