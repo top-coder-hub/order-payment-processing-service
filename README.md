@@ -300,6 +300,11 @@ Key principles:
 - Consistent response structure
 - Clear separation between client errors and server errors
 
+### Failure handling (V1):
+
+In V1, database and infrastructure failures are returned as HTTP 500 (INTERNAL_SERVER_ERROR) with retryable=true.
+HTTP 503 (SERVICE_UNAVAILABLE) is intentionally reserved for future infra-aware deployments (e.g., circuit breakers, maintenance windows, load shedding).
+
 ---
 
 ## Documentation-Driven Development
