@@ -3,5 +3,7 @@ spring:
     name: order-payment-processing-service
 
 logging:
-  pattern:
-    level: "%5p [traceId=%X{traceId} requestId=%X{requestId}]"
+  level:
+    root: INFO
+    org.springframework: WARN
+    com.dev.order: DEBUG
