@@ -2,8 +2,24 @@ spring:
   application:
     name: order-payment-processing-service
 
+  datasource:
+    url: jdbc:mysql://localhost:3306/order_payment_db?createDatabaseIfNotExist=true&serverTimezone=UTC
+    username: order_user
+    password: order_pass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
 logging:
   level:
     root: INFO
     org.springframework: WARN
     com.dev.order: DEBUG
+    org.hibernate.SQL: DEBUG
