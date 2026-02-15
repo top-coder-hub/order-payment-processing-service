@@ -17,12 +17,14 @@ import com.dev.order.repository.PaymentRepository;
 import com.dev.order.security.AuthenticatedUser;
 import com.dev.order.security.RequestContext;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
@@ -44,6 +46,7 @@ public class PaymentService {
                     existingPayment.getPaymentState(),
                     existingPayment.getCreatedAt()
             );
+            log.debug("Idempotency replay detected for orderId={}", orderId);
             return new PaymentResult(existingPaymentResponse, false);
         }
         //Check order existence
@@ -54,7 +57,6 @@ public class PaymentService {
         if (!existingOrder.getCustomerId().equals(user.userId())) {
             throw new AccessDeniedException("You are not allowed to pay for this order");
         }
-
         //Check if existing order status is in CREATED state
         if(existingOrder.getOrderState() != OrderState.CREATED) {
             throw new InvalidOrderStateException(
@@ -73,9 +75,11 @@ public class PaymentService {
         //persist new payment
         Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), PaymentState.COMPLETED, idempotencyKey);
         Payment savedNewPayment = paymentRepository.save(newPayment);
-        //Mark payment status of existing order as PAID & merge
+        log.info("Payment completed paymentId={}, orderId={}", savedNewPayment.getPaymentId(), orderId);
+        // Transition order state: CREATED → PAID
         existingOrder.markAsPaid();
-        Order savedExistingOrder = orderRepository.save(existingOrder);
+        orderRepository.save(existingOrder);
+        log.info("Order marked as PAID orderId={}", orderId);
         PaymentResponse newPaymentResponse = new PaymentResponse(
                 savedNewPayment.getPaymentId(),
                 savedNewPayment.getOrderId(),
@@ -109,7 +113,9 @@ public class PaymentService {
                 payment.getPaymentState(),
                 payment.getCreatedAt()
         );
+        log.info("Payment fetched paymentId={}, payment_state={}",
+                payment.getPaymentId(),
+                payment.getPaymentState());
         return new PaymentResult(paymentResponse, false);
     }
-
 }
