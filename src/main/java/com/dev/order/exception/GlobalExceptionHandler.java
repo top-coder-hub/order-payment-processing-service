@@ -42,6 +42,7 @@ public class GlobalExceptionHandler {
             LocalDateTime timestamp,
             String traceId
     ) {}
+    //Handle Validation / Request Errors
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
@@ -50,6 +51,7 @@ public class GlobalExceptionHandler {
                         FieldError::getDefaultMessage,
                         (existing, replacement) -> existing + " ; " + replacement
                 ));
+        log.warn("Field validation failed. errors={}", errors.keySet());
         ErrorResponse errorResponse = new ErrorResponse(
                 false,
                 HttpStatus.BAD_REQUEST.value(),
@@ -66,10 +68,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
         Map<String, String> errors = ex.getConstraintViolations().stream()
                 .collect(Collectors.toMap(
-                        violation -> violation.getPropertyPath().toString(),   // field name
-                        ConstraintViolation::getMessage,                       // error message
-                        (existing, replacement) -> existing + " ; " + replacement // merge if duplicate
+                        violation -> violation.getPropertyPath().toString(),
+                        ConstraintViolation::getMessage,
+                        (existing, replacement) -> existing + " ; " + replacement
                 ));
+        log.warn("Request body constraints violated. errors={}", errors.keySet());
         ErrorResponse errorResponse = new ErrorResponse(
                 false,
                 HttpStatus.BAD_REQUEST.value(),
@@ -84,6 +87,7 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<ErrorResponse> handleMissingRequestHeader(MissingRequestHeaderException ex) {
+        log.warn("Missing request header. header={}", ex.getHeaderName());
         ErrorResponse errorResponse = new ErrorResponse(
                 false,
                 HttpStatus.BAD_REQUEST.value(),
@@ -98,6 +102,7 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleBadJson(HttpMessageNotReadableException ex) {
+        log.warn("Malformed JSON request");
         return buildError(
                 HttpStatus.BAD_REQUEST,
                 "BAD_JSON",
@@ -107,6 +112,7 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex) {
+        log.warn("Http Request method not supported. method={}", ex.getMethod());
         return buildError(
                 HttpStatus.METHOD_NOT_ALLOWED,
                 "METHOD_NOT_ALLOWED",
@@ -117,7 +123,14 @@ public class GlobalExceptionHandler {
     //Handle Business / Domain Exceptions
     @ExceptionHandler(BusinessRulesViolationException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRulesViolation(BusinessRulesViolationException ex) {
-        log.warn("Business rule violation. errorCode={}, message={}", ex.getErrCode(), ex.getMessage());
+        if(ex instanceof OrderContext orderContext) {
+            log.warn("Business rule violated. errorCode={}, orderId={}, message={}",
+                    ex.getErrCode(), orderContext.getOrderId(), ex.getMessage());
+        }
+        else {
+            log.warn("Business rule violated. errorCode={}, message={}",
+                    ex.getErrCode(), ex.getMessage());
+        }
         return buildError(
                 HttpStatus.CONFLICT,
                 ex.getErrCode(),
@@ -127,7 +140,7 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(PaymentNotFoundException.class)
     public ResponseEntity<ErrorResponse> handlePaymentNotFound(PaymentNotFoundException ex) {
-        log.warn("Payment not found. paymentId={}, message={}", ex.getPaymentId(), ex.getMessage());
+        log.warn("Payment not found. paymentId={}", ex.getPaymentId());
         return buildError(
                 HttpStatus.NOT_FOUND,
                 "PAYMENT_NOT_FOUND",
@@ -135,8 +148,10 @@ public class GlobalExceptionHandler {
                 false
         );
     }
+    //Authentication / Authorization Errors
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
+        log.warn("Unauthorized request");
         return buildError(
                 HttpStatus.UNAUTHORIZED,
                 "UNAUTHORIZED",
@@ -146,6 +161,7 @@ public class GlobalExceptionHandler {
     }
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access Denied");
         return buildError(
                 HttpStatus.FORBIDDEN,
                 "ACCESS_DENIED",
@@ -153,9 +169,10 @@ public class GlobalExceptionHandler {
                 false
         );
     }
-
+    //Handle missing Order
     @ExceptionHandler(OrderNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleOrderNotFound(OrderNotFoundException ex) {
+        log.warn("Order not found. orderId={}", ex.getOrderId());
         return buildError(
                 HttpStatus.NOT_FOUND,
                 "ORDER_NOT_FOUND",
@@ -163,32 +180,21 @@ public class GlobalExceptionHandler {
                 false
         );
     }
+    //Handle client semantic error in request
     @ExceptionHandler(InvalidRequestException.class)
     public ResponseEntity<ErrorResponse> handleInvalidRequest(InvalidRequestException ex) {
+        log.warn("Semantic validation failed. reason={}" , ex.getMessage());
         return buildError(
                 HttpStatus.BAD_REQUEST,
-                "INVALID_REQUEST",
+                "INVALID_LOGICAL_REQUEST",
                 ex.getMessage(),
                 false
                 );
     }
-
-    @ExceptionHandler({
-            DataAccessException.class,
-            TransactionException.class,
-            IOException.class,
-            RuntimeException.class
-    })
-    public ResponseEntity<ErrorResponse> handleInfrastructureFailures(Exception ex) {
-        return buildError(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "INTERNAL_SERVER_ERROR",
-                "The service is temporarily unavailable",
-                true
-        );
-    }
+    //Infrastructure / Unexpected Exceptions
     @ExceptionHandler(TimeoutException.class)
     public ResponseEntity<ErrorResponse> handleTimeout(TimeoutException ex) {
+        log.error("Gateway timeout occurred", ex);
         return buildError(
                 HttpStatus.GATEWAY_TIMEOUT,
                 "GATEWAY_TIMEOUT",
@@ -196,6 +202,22 @@ public class GlobalExceptionHandler {
                 true
         );
     }
+    @ExceptionHandler({
+            DataAccessException.class,
+            TransactionException.class,
+            IOException.class,
+            RuntimeException.class
+    })
+    public ResponseEntity<ErrorResponse> handleInfrastructureFailures(Exception ex) {
+        log.error("Infrastructure failure", ex);
+        return buildError(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "INTERNAL_SERVER_ERROR",
+                "The service is temporarily unavailable",
+                true
+        );
+    }
+
     private String resolveTraceId() {
         String traceId = MDC.get("traceId");
         if (traceId != null && !traceId.isBlank()) {
