@@ -9,7 +9,7 @@ import lombok.Getter;
 
 @Getter
 
-public class InvalidOrderStateException extends BusinessRulesViolationException {
+public class InvalidOrderStateException extends BusinessRulesViolationException implements OrderContext {
     private final Long orderId;
     public InvalidOrderStateException(String errCode, String reason, Long orderId) {
         super(errCode, reason);

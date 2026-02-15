@@ -8,7 +8,7 @@ package com.dev.order.exception;
 import lombok.Getter;
 
 @Getter
-public class PaymentCurrencyMismatchException extends BusinessRulesViolationException {
+public class PaymentCurrencyMismatchException extends BusinessRulesViolationException implements OrderContext {
     private final Long orderId;
     public PaymentCurrencyMismatchException(Long orderId) {
         super("ORDER_CURRENCY_MISMATCH",
