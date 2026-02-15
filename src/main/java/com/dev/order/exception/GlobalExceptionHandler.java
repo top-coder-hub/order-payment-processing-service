@@ -7,6 +7,7 @@ package com.dev.order.exception;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
     private record ErrorResponse (
             boolean success,
@@ -112,11 +114,23 @@ public class GlobalExceptionHandler {
                 false
         );
     }
+    //Handle Business / Domain Exceptions
     @ExceptionHandler(BusinessRulesViolationException.class)
     public ResponseEntity<ErrorResponse> handleBusinessRulesViolation(BusinessRulesViolationException ex) {
+        log.warn("Business rule violation. errorCode={}, message={}", ex.getErrCode(), ex.getMessage());
         return buildError(
                 HttpStatus.CONFLICT,
-                ex.errCode,
+                ex.getErrCode(),
+                ex.getMessage(),
+                false
+        );
+    }
+    @ExceptionHandler(PaymentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentNotFound(PaymentNotFoundException ex) {
+        log.warn("Payment not found. paymentId={}, message={}", ex.getPaymentId(), ex.getMessage());
+        return buildError(
+                HttpStatus.NOT_FOUND,
+                "PAYMENT_NOT_FOUND",
                 ex.getMessage(),
                 false
         );
@@ -139,15 +153,7 @@ public class GlobalExceptionHandler {
                 false
         );
     }
-    @ExceptionHandler(PaymentNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handlePaymentNotFound(PaymentNotFoundException ex) {
-        return buildError(
-                HttpStatus.NOT_FOUND,
-                "PAYMENT_NOT_FOUND",
-                ex.getMessage(),
-                false
-        );
-    }
+
     @ExceptionHandler(OrderNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleOrderNotFound(OrderNotFoundException ex) {
         return buildError(

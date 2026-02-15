@@ -94,19 +94,19 @@ public class Order {
 
     public void markAsPaid() {
         if(this.orderState != OrderState.CREATED) {
-            throw new InvalidOrderStateException("ORDER.INVALID_STATE.PAYMENT", "Only CREATED orders can be marked as PAID.");
+            throw new InvalidOrderStateException("ORDER.INVALID_STATE.PAYMENT", "Only CREATED orders can be marked as PAID.", getId());
         }
         this.orderState = OrderState.PAID;
     }
     public void cancel() {
         if(this.orderState != OrderState.CREATED) {
-            throw new InvalidOrderStateException("ORDER.INVALID_STATE.CANCELLATION", "Only CREATED orders can be CANCELLED.");
+            throw new InvalidOrderStateException("ORDER.INVALID_STATE.CANCELLATION", "Only CREATED orders can be CANCELLED.", getId());
         }
         this.orderState = OrderState.CANCELLED;
     }
     public void markAsShipped() {
         if(this.orderState != OrderState.PAID) {
-            throw new InvalidOrderStateException("ORDER.INVALID_STATE.SHIPPING", "Only PAID orders can be marked as SHIPPED.");
+            throw new InvalidOrderStateException("ORDER.INVALID_STATE.SHIPPING", "Only PAID orders can be marked as SHIPPED.", getId());
         }
         this.orderState = OrderState.SHIPPED;
     }

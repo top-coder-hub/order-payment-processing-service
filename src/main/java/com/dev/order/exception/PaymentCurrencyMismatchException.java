@@ -5,8 +5,14 @@
  */
 package com.dev.order.exception;
 
-public class PaymentCurrencyMismatchException extends BusinessRulesViolationException{
-    public PaymentCurrencyMismatchException(String errCode, String reason) {
-        super(errCode, reason);
+import lombok.Getter;
+
+@Getter
+public class PaymentCurrencyMismatchException extends BusinessRulesViolationException {
+    private final Long orderId;
+    public PaymentCurrencyMismatchException(Long orderId) {
+        super("ORDER_CURRENCY_MISMATCH",
+                "Payment currency does not match order currency.");
+        this.orderId = orderId;
     }
 }

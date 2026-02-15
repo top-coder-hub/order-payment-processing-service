@@ -5,8 +5,14 @@
  */
 package com.dev.order.exception;
 
-public class InvalidOrderStateException extends BusinessRulesViolationException{
-    public InvalidOrderStateException(String errCode, String reason) {
+import lombok.Getter;
+
+@Getter
+
+public class InvalidOrderStateException extends BusinessRulesViolationException {
+    private final Long orderId;
+    public InvalidOrderStateException(String errCode, String reason, Long orderId) {
         super(errCode, reason);
+        this.orderId = orderId;
     }
 }

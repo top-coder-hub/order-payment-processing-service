@@ -51,7 +51,7 @@ public class PaymentService {
         }
         //Check order existence
         Order existingOrder = orderRepository.findById(orderId).orElseThrow(
-                () -> new OrderNotFoundException("The requested order with ID " + orderId + " was not found in the system."));
+                () -> new OrderNotFoundException(orderId));
         //Ownership check
         AuthenticatedUser user = RequestContext.get();
         if (!existingOrder.getCustomerId().equals(user.userId())) {
@@ -60,17 +60,15 @@ public class PaymentService {
         //Check if existing order status is in CREATED state
         if(existingOrder.getOrderState() != OrderState.CREATED) {
             throw new InvalidOrderStateException(
-                    "INVALID_ORDER_STATE", "Cannot process payment on order " + orderId + ", because Order is currently not in 'CREATED' state.");
+                    "INVALID_ORDER_STATE", "Cannot process payment, because Order is currently not in 'CREATED' state.", orderId);
         }
         //Check if existing order amount matches the new payment request amount
         if(existingOrder.getTotalAmount().compareTo(request.amount()) != 0) {
-            throw new OrderAmountMismatchException(
-                    "ORDER_AMOUNT_MISMATCH", "The requested payment amount (" + request.amount() + "), does not match the calculated order amount (" + existingOrder.getTotalAmount() + ").");
+            throw new OrderAmountMismatchException(orderId);
         }
         //Check if existing order currency matches the new payment request currency
         if(!Objects.equals(existingOrder.getCurrency(), request.currency())) {
-            throw new PaymentCurrencyMismatchException(
-                    "ORDER_CURRENCY_MISMATCH", "The requested payment currency (" + request.currency() + "), does not match the order currency (" + existingOrder.getCurrency() + ").");
+            throw new PaymentCurrencyMismatchException(orderId);
         }
         //persist new payment
         Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), PaymentState.COMPLETED, idempotencyKey);
@@ -93,18 +91,15 @@ public class PaymentService {
         // 1️⃣ Fetch payment or cloak as 404
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() ->
-                        new PaymentNotFoundException(
-                                "Payment not found for the given " + paymentId));
+                        new PaymentNotFoundException(paymentId));
         // 2️⃣ Fetch owning order or cloak as 404 (defensive)
         Order order = orderRepository.findById(payment.getOrderId())
                 .orElseThrow(() ->
-                        new PaymentNotFoundException(
-                                "Payment not found for the given " + paymentId));
+                        new PaymentNotFoundException(paymentId));
         // 3️⃣ Ownership check (cloaked)
         AuthenticatedUser user = RequestContext.get();
         if (!order.getCustomerId().equals(user.userId())) {
-            throw new PaymentNotFoundException(
-                    "Payment not found for the given " + paymentId);
+            throw new PaymentNotFoundException(paymentId);
         }
         PaymentResponse paymentResponse = new PaymentResponse(
                 payment.getPaymentId(),
