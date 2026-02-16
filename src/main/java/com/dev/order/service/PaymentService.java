@@ -54,6 +54,9 @@ public class PaymentService {
                 () -> new OrderNotFoundException(orderId));
         //Ownership check
         AuthenticatedUser user = RequestContext.get();
+        if (user == null) {
+            throw new UnauthorizedException("User not authenticated");
+        }
         if (!existingOrder.getCustomerId().equals(user.userId())) {
             throw new AccessDeniedException("You are not allowed to pay for this order");
         }
@@ -98,6 +101,9 @@ public class PaymentService {
                         new PaymentNotFoundException(paymentId));
         // 3️⃣ Ownership check (cloaked)
         AuthenticatedUser user = RequestContext.get();
+        if (user == null) {
+            throw new UnauthorizedException("User not authenticated");
+        }
         if (!order.getCustomerId().equals(user.userId())) {
             throw new PaymentNotFoundException(paymentId);
         }

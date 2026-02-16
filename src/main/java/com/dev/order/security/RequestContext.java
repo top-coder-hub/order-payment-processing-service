@@ -4,6 +4,7 @@
  * Time: 11:17 pm
  */
 package com.dev.order.security;
+import org.slf4j.MDC;
 
 public class RequestContext {
     private static final ThreadLocal<AuthenticatedUser> CURRENT_USER = new ThreadLocal<>();
@@ -11,7 +12,10 @@ public class RequestContext {
     private RequestContext() {}
 
     public static void set(AuthenticatedUser user) {
-        CURRENT_USER.set(user);
+        if (user != null) {
+            CURRENT_USER.set(user);
+            MDC.put("userId", String.valueOf(user.userId()));
+        }
     }
 
     public static AuthenticatedUser get() {

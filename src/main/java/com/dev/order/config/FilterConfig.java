@@ -5,6 +5,7 @@
  */
 package com.dev.order.config;
 
+import com.dev.order.security.RequestContext;
 import io.micrometer.tracing.Tracer;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -68,8 +69,8 @@ public class FilterConfig {
                 chain.doFilter(request, response);
             } finally {
                 //Cleanup: Critical to prevent ThreadLocal memory leaks
-                MDC.remove(MDC_KEY);
-                MDC.remove("traceId");
+                RequestContext.clear();
+                MDC.clear(); //Clear ALL MDC keys at once (requestId, traceId, userId)
             }
         });
 
