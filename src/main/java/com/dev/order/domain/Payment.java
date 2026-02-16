@@ -6,6 +6,9 @@
 package com.dev.order.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -16,6 +19,8 @@ import java.time.LocalDateTime;
         name = "payments", indexes = {
                 @Index(name = "idx_payments_order", columnList = "order_id")
 })
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,7 +34,6 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     private PaymentState paymentState;
     @Column(name = "idempotency_key", nullable = false, unique = true, length = 128)
-
     private String idempotencyKey;
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -37,51 +41,14 @@ public class Payment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
-    public Order getOrder() {
-        return order;
-    }
-
-    protected Payment() {
-    }
-
-    public Payment(Order order, BigDecimal amount, String currency, PaymentState paymentState, String idempotencyKey) {
+    public Payment(Order order, BigDecimal amount, String currency, String idempotencyKey) {
         this.order = order;
         this.amount = amount;
         this.currency = currency;
-        this.paymentState = paymentState;
+        this.paymentState = PaymentState.PENDING;
         this.idempotencyKey = idempotencyKey;
     }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public Long getPaymentId() {
-        return paymentId;
-    }
-
     public Long getOrderId() {
         return order.getId();
     }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public PaymentState getPaymentState() {
-        return paymentState;
-    }
-
-    protected void setPaymentState(PaymentState paymentState) {
-        this.paymentState = paymentState;
-    }
-
-    public String getIdempotencyKey() {
-        return idempotencyKey;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
 }
