@@ -75,7 +75,8 @@ public class PaymentService {
         }
         //persist new payment
         log.info("Payment initiated orderId={}", orderId);
-        Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), PaymentState.COMPLETED, idempotencyKey);
+        Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), idempotencyKey);
+        newPayment.markAsCompleted();
         Payment savedNewPayment = paymentRepository.save(newPayment);
         log.info("Payment completed paymentId={}, orderId={}", savedNewPayment.getPaymentId(), orderId);
         // Transition order state: CREATED → PAID

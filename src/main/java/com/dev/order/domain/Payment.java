@@ -5,6 +5,7 @@
  */
 package com.dev.order.domain;
 
+import com.dev.order.exception.InvalidPaymentStateException;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -50,5 +51,17 @@ public class Payment {
     }
     public Long getOrderId() {
         return order.getId();
+    }
+    public void markAsCompleted() {
+        if(this.paymentState != PaymentState.PENDING) {
+            throw new InvalidPaymentStateException("PAYMENT.INVALID_STATE.COMPLETION", "Only PENDING payments can be completed", getPaymentId());
+        }
+        this.paymentState = PaymentState.COMPLETED;
+    }
+    public void markAsFailed() {
+        if(this.paymentState != PaymentState.PENDING) {
+            throw new InvalidPaymentStateException("PAYMENT.INVALID_STATE.FAILURE", "Only PENDING payments can fail", getPaymentId());
+        }
+        this.paymentState = PaymentState.FAILED;
     }
 }

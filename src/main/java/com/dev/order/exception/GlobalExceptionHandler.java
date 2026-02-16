@@ -127,6 +127,10 @@ public class GlobalExceptionHandler {
             log.warn("Business rule violated. errorCode={}, orderId={}, message={}",
                     ex.getErrCode(), orderContext.getOrderId(), ex.getMessage());
         }
+        else if(ex instanceof PaymentContext paymentContext) {
+            log.warn("Business rule violated. errorCode={}, paymentId={}, message={}",
+                    ex.getErrCode(), paymentContext.getPaymentId(), ex.getMessage());
+        }
         else {
             log.warn("Business rule violated. errorCode={}, message={}",
                     ex.getErrCode(), ex.getMessage());
