@@ -74,6 +74,7 @@ public class PaymentService {
             throw new PaymentCurrencyMismatchException(orderId);
         }
         //persist new payment
+        log.info("Payment initiated orderId={}", orderId);
         Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), PaymentState.COMPLETED, idempotencyKey);
         Payment savedNewPayment = paymentRepository.save(newPayment);
         log.info("Payment completed paymentId={}, orderId={}", savedNewPayment.getPaymentId(), orderId);
