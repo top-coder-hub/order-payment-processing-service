@@ -14,7 +14,6 @@ import com.dev.order.security.RequestContext;
 import com.dev.order.security.UserRole;
 import com.dev.order.service.PaymentResult;
 import com.dev.order.service.PaymentService;
-import io.micrometer.tracing.Tracer;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import lombok.extern.slf4j.Slf4j;
