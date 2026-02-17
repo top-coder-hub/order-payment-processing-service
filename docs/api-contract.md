@@ -156,6 +156,7 @@ Process payment for an order.
 3. `GET` `/orders?customerId=&page=&size=&orderState=`
 4. `POST` `/orders/{orderId}/cancel`
 5. `POST` `/orders/{orderId}/payments`
+6. `GET` `/payments/{paymentId}`
 
 ### **Request fields (high level)**
 

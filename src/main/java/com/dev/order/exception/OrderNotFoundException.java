@@ -5,8 +5,13 @@
  */
 package com.dev.order.exception;
 
-public class OrderNotFoundException extends BusinessRulesViolationException{
-    public OrderNotFoundException(String errCode, String reason) {
-        super(404, errCode, reason);
+import lombok.Getter;
+
+@Getter
+public class OrderNotFoundException extends RuntimeException {
+    private final Long orderId;
+    public OrderNotFoundException(Long orderId) {
+        super("The requested order was not found in the system.");
+        this.orderId = orderId;
     }
 }

@@ -9,7 +9,7 @@ Correct status usage is critical for **security, cloaking, and fintech correctne
 
 ---
 
-## 1. 401 — UNAUTHENTICATED
+## 1. 401 — UNAUTHORIZED
 
 ### When to return
 - Missing bearer token
@@ -26,7 +26,7 @@ The caller’s **identity cannot be established**.
 **Authorization:** (missing)
 
 **Response**
-401 UNAUTHENTICATED
+401 UNAUTHORIZED
 ### Rule
 Authentication failures are handled at the **security filter / controller boundary**.
 The request must not reach business logic.

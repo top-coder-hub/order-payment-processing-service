@@ -52,7 +52,7 @@ The controller **must not**:
 
 **Validation Rules**
 - Invalid Idempotency-Key format → **400 BAD REQUEST**
-- Missing Authorization → **401 UNAUTHENTICATED**
+- Missing Authorization → **401 UNAUTHORIZED**
 
 ---
 
@@ -91,7 +91,7 @@ No DB or lifecycle validation here.
 ## 5. Authentication
 
 * Token validated at entry (filter / controller boundary)
-* Missing / invalid token → **401 UNAUTHENTICATED**
+* Missing / invalid token → **401 UNAUTHORIZED**
 * Extracted identity passed to service
 
 ------

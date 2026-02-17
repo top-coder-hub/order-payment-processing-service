@@ -5,15 +5,13 @@
  */
 package com.dev.order.exception;
 
-import jakarta.persistence.Id;
+import lombok.Getter;
 
+@Getter
 public class BusinessRulesViolationException extends RuntimeException {
-    Integer errStatus;
-    String errCode;
-    String reason;
-    public BusinessRulesViolationException(Integer errStatus, String errCode, String reason) {
+    private final String errCode;
+    public BusinessRulesViolationException(String errCode, String reason) {
         super(reason);
-        this.errStatus = errStatus;
         this.errCode = errCode;
     }
 }

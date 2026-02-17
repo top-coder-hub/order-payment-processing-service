@@ -7,6 +7,9 @@ package com.dev.order.domain;
 
 import com.dev.order.exception.InvalidOrderStateException;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -21,6 +24,8 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_orders_customer_state", columnList = "customer_id,order_state"), //Composite Index
                 @Index(name = "idx_orders_created", columnList = "created_at")
 })
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,71 +47,28 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    protected Order() {
-    }
-
-    public Order(Long customerId, BigDecimal totalAmount, String currency, OrderState orderState) {
+    public Order(Long customerId, BigDecimal totalAmount, String currency) {
         this.customerId = customerId;
         this.totalAmount = totalAmount;
         this.currency = currency;
-        this.orderState = orderState;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getCustomerId() {
-        return customerId;
-    }
-
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
-
-    public void setTotalAmount(BigDecimal totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public OrderState getOrderState() {
-        return orderState;
-    }
-
-    protected void setOrderState(OrderState orderState) {
-        this.orderState = orderState;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+        this.orderState = OrderState.CREATED;
     }
 
     public void markAsPaid() {
         if(this.orderState != OrderState.CREATED) {
-            throw new InvalidOrderStateException("ORDER.INVALID_STATE.PAYMENT", "Only CREATED orders can be marked as PAID.");
+            throw new InvalidOrderStateException("ORDER.INVALID_STATE.PAYMENT", "Only CREATED orders can be marked as PAID.", getId());
         }
         this.orderState = OrderState.PAID;
     }
     public void cancel() {
         if(this.orderState != OrderState.CREATED) {
-            throw new InvalidOrderStateException("ORDER.INVALID_STATE.CANCELLATION", "Only CREATED orders can be CANCELLED.");
+            throw new InvalidOrderStateException("ORDER.INVALID_STATE.CANCELLATION", "Only CREATED orders can be CANCELLED.", getId());
         }
         this.orderState = OrderState.CANCELLED;
     }
     public void markAsShipped() {
         if(this.orderState != OrderState.PAID) {
-            throw new InvalidOrderStateException("ORDER.INVALID_STATE.SHIPPING", "Only PAID orders can be marked as SHIPPED.");
+            throw new InvalidOrderStateException("ORDER.INVALID_STATE.SHIPPING", "Only PAID orders can be marked as SHIPPED.", getId());
         }
         this.orderState = OrderState.SHIPPED;
     }
