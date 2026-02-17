@@ -58,7 +58,7 @@ public class PaymentService {
             throw new UnauthorizedException("User not authenticated");
         }
         if (!existingOrder.getCustomerId().equals(user.userId())) {
-            throw new AccessDeniedException("You are not allowed to pay for this order");
+            throw new OrderNotFoundException(orderId);
         }
         //Check if existing order status is in CREATED state
         if(existingOrder.getOrderState() != OrderState.CREATED) {
