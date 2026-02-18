@@ -20,7 +20,6 @@ Create a new order resource.
 * Non-idempotent
 
 **Request (json)**
-* customerId
 * totalAmount
 * currency
 
@@ -53,7 +52,7 @@ orderId
 
 ### ***3. Get orders(Order History)***
 
-`GET` `/orders?customerId=&page=&size=&orderState=`
+`GET` `/orders?page=&size=&orderState=`
 
 **orderState:** Filter by current state (`CREATED`, `PAID`, `SHIPPED`, `CANCELLED`).
 
@@ -61,7 +60,7 @@ orderId
 Fetch order details with mandatory pagination
 
 **Request (Query parameters)**
-* customerId
+
 * page
 * size
 * orderState
@@ -153,18 +152,17 @@ Process payment for an order.
 
 1. `POST` `/orders`
 2. `GET` `/orders/{orderId}`
-3. `GET` `/orders?customerId=&page=&size=&orderState=`
+3. `GET` `/orders?page=&size=&orderState=`
 4. `POST` `/orders/{orderId}/cancel`
 5. `POST` `/orders/{orderId}/payments`
 6. `GET` `/payments/{paymentId}`
 
 ### **Request fields (high level)**
 
-1. orderId
-2. customerId
-3. page
-4. size
-5. orderState
+1. orderId 
+2. page 
+3. size
+4. orderState
 
 ### **Error contract**
 
