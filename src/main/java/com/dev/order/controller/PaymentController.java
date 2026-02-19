@@ -15,7 +15,9 @@ import com.dev.order.security.UserRole;
 import com.dev.order.service.PaymentResult;
 import com.dev.order.service.PaymentService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,10 +36,10 @@ public class PaymentController {
     //create payment
     @PostMapping("/orders/{orderId}/payments")
     public ResponseEntity<PaymentResponse> createPayment(
-            @RequestHeader("Idempotency-Key")
+            @NotBlank @RequestHeader("Idempotency-Key")
             @Pattern(regexp = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
             message = "Idempotency-Key must follow UUID format") String idempotencyKey,
-            @PathVariable Long orderId,
+            @PathVariable @Positive Long orderId,
             @Valid @RequestBody PaymentRequest paymentRequest) {
         //Authorization check
         authorize();
@@ -54,7 +56,7 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.OK).body(paymentResult.paymentResponse());
     }
     @GetMapping("/payments/{paymentId}")
-    public ResponseEntity<PaymentResponse> getPayment(@PathVariable Long paymentId) {
+    public ResponseEntity<PaymentResponse> getPayment(@PathVariable @Positive Long paymentId) {
         //Authorization check
         authorize();
         //Entry log (Logging the Order ID)
