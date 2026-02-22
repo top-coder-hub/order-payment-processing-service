@@ -164,6 +164,7 @@ Handled as:
 | JSON parse failure     | 400    | BAD_JSON                |
 | amount format          | 400    | INVALID_AMOUNT_FORMAT   |
 | currency format        | 400    | INVALID_CURRENCY_FORMAT |
+| Semantic request       | 400    | INVALID_LOGICAL_REQUEST |
 
 
 ## Infra-To-Http Mapping Table
