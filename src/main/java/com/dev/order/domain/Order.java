@@ -20,9 +20,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "orders", indexes = {
-                @Index(name = "idx_orders_customer", columnList = "customer_id"),
-                @Index(name = "idx_orders_customer_state", columnList = "customer_id,order_state"), //Composite Index
-                @Index(name = "idx_orders_created", columnList = "created_at")
+        //Composite Indexes
+                @Index(name = "idx_orders_customer_state", columnList = "customer_id,order_state"),
+                @Index(name = "idx_orders_customer_created_desc", columnList = "customer_id,created_at")
 })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

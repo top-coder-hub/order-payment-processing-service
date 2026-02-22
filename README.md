@@ -28,108 +28,22 @@ The application follows a layered architecture with clear separation of concerns
 - **Persistence Layer** – Relational schema with constraints and indexes
 - **Documentation Layer** – Explicit API contracts, error models, and consistency rules
 
-### Project Structure
-**docs**
+----
 
-├── **module-9**
+## Project Architecture
+The project follows a modular Layered Architecture with a focus on Domain-Driven Design (DDD) principles.
 
-│    ├──—controller-boundary.md
+**domain:** Core business entities and Enums (State Machines).
 
-│    ├──—error-contracts.md
+**controller:** REST Entry points with strict request validation.
 
-│    ├──—success-contracts.md
+**service:** Orchestrates business logic and transactional boundaries.
 
-├── **module-10**
+**repository:** Data access layer with optimized composite indexing.
 
-│    ├──—authorization-ownership.md
+**security:** Custom authentication filters and ThreadLocal RequestContext for Resource Cloaking.
 
-│    ├──—controller-design.md
-
-│    ├──—security-model.md
-
-│    ├──—token-failure-semantics.md
-
-├── api-contract.md
-
-└── payment-test-scenarios.md
-
-└──payments-consistency-v1.md
-
-**order**
-
-├── **domain**
-
-│   ├── Order
-
-│ ├── Payment
-
-│ ├── OrderState
-
-│ └── PaymentState
-
-├── **service**
-
-│   ├── PaymentService
-
-|	├──PaymentResult
-
-├── **controller**
-
-|  ├──PaymentController
-
-|	├── OrderController
-
-├── **repository**
-
-|	├──OrderRepository
-
-|	├──PaymentRepository
-
-├── **dto**
-
-|	├──CreateOrderRequest
-
-|	├──OrderResponse
-
-|	├──PaymentRequest
-
-|	├──PaymentResponse
-
-├── **exception**
-
-|	├──AccessDeniedException
-
-|	├──BusinessRulesViolationException
-
-|	├──GlobalExceptionHandler
-
-|	├──InvalidOrderStateException
-
-|	├──OrderAmountMismatchException
-
-|	├──OrderNotFoundException
-
-|	├──PaymentCurrencyMismatchException
-
-|	├──UnauthorizedException
-
-|	├──PaymentNotFoundException
-
-├── **config**
-
-│    ├── FilterConfig.java                (RequestId)
-
-│    └── AuthenticationFilterConfig.java
-
-├── **security**
-
-│    ├── RequestContext.java
-
-│    ├── AuthenticatedUser.java
-
-│    └── UserRole.java
-
-
+**docs:** Modularized documentation covering security models, error contracts, and pagination rules.
 
 ---
 
@@ -162,6 +76,9 @@ This project is built using **Documentation-Driven Development** (DDD). Each arc
 [Module 10: Authorization & Ownership](docs/module-10/authorization-ownership.md) – Role matrix and the "Cloaked 404" strategy.
 
 [Module 10: Token Failure Semantics](docs/module-10/token-failure-semantics.md) – Technical mapping for 401, 403, and 404 status codes.
+
+### Scalability & Performance
+[Module 11: Pagination, Filtering & Performance](docs/pagination-filtering-performance.md) – Defensive API design, composite indexing strategy, and resource management rules.
 
 -------
 
@@ -199,8 +116,6 @@ The APIs are designed with clear contracts and predictable behavior.
 - `GET /payments/{paymentId}` – Fetch payment details with payment status
 
 API request and response contracts are documented in:
-
-/docs/api-contract.md
 
 ---
 
@@ -281,6 +196,45 @@ This includes:
 
 ---
 
+## Pagination & Performance
+
+- Offset-based pagination (`page`, `size`)
+- Max page size enforced (100)
+- Stable sorting by `createdAt DESC`
+- Ownership-based filtering
+- Optional `orderState` filter
+- Composite DB indexes for optimized queries
+- Defensive logging for oversized requests
+
+---
+
+## Logging & Correlation
+
+- Structured logging using Logback
+- MDC correlation fields:
+  - requestId
+  - traceId
+  - userId
+- Custom log pattern defined in `logback-spring.xml`
+- Log levels configured in `application.yml`
+- DEBUG for read operations
+- INFO for state transitions
+- WARN for defensive sanitization
+
+------
+## Lombok
+
+Lombok is used to reduce boilerplate:
+- @Slf4j
+- @Getter
+- Constructor generation
+
+Entities:
+- Order
+- Payment
+
+-----
+
 ## Error Handling & API Contracts
 The system exposes clear and predictable API error contracts.
 
@@ -288,11 +242,11 @@ Documented under:
 
 **/docs/module-09**
 
-├── error-contracts.md
+├── [error-contracts.md](/docs/module-09/error-contracts.md)
 
-├── success-contracts.md
+├── [success-contracts.md](/docs/module-09/success-contracts.md)
 
-└── controller-boundary.md
+└── [controller-boundary.md](/docs/module-09/controller-boundary.md)
 
 
 Key principles:

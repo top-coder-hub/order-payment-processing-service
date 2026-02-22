@@ -7,6 +7,7 @@ package com.dev.order.controller;
 
 import com.dev.order.dto.CreateOrderRequest;
 import com.dev.order.dto.OrderResponse;
+import com.dev.order.dto.PageOrderResponse;
 import com.dev.order.exception.AccessDeniedException;
 import com.dev.order.exception.UnauthorizedException;
 import com.dev.order.security.AuthenticatedUser;
@@ -14,6 +15,7 @@ import com.dev.order.security.RequestContext;
 import com.dev.order.security.UserRole;
 import com.dev.order.service.OrderService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -43,6 +45,16 @@ public class OrderController {
         log.info("Get order request received. orderId={}", orderId);
         OrderResponse orderResponse = orderService.getOrderById(orderId);
         return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
+    }
+    @GetMapping("/orders")
+    public ResponseEntity<PageOrderResponse> getOrders(
+            @RequestParam(defaultValue = "0") @Min(0) Integer page,
+            @RequestParam(defaultValue = "20") @Min(1) Integer size,
+            @RequestParam(required = false) String orderState) {
+        authorize();
+        log.debug("Get orders request received. page={}, size={}, orderState={}", page, size, orderState);
+        PageOrderResponse pageOrderResponse = orderService.getOrders(page, size, orderState);
+        return ResponseEntity.ok(pageOrderResponse);
     }
     @PostMapping("/orders/{orderId}/cancel")
     public ResponseEntity<OrderResponse> cancelOrder(@PathVariable @Positive Long orderId) {
