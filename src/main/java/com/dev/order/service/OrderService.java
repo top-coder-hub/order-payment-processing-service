@@ -16,6 +16,7 @@ import com.dev.order.exception.UnauthorizedException;
 import com.dev.order.repository.OrderRepository;
 import com.dev.order.security.AuthenticatedUser;
 import com.dev.order.security.RequestContext;
+import io.micrometer.observation.annotation.Observed;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,9 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -39,9 +37,10 @@ public class OrderService {
     }
     //Create order
     @Transactional
+    @Observed(name = "order.create")
     public OrderResponse createOrder(CreateOrderRequest orderRequest) {
         Long customerId = getCurrentCustomerId();
-        log.info("Order creation initiated.");
+        log.info("Order creation initiated. customerId={}", customerId);
         //persist new order
         Order newOrder = new Order(customerId, orderRequest.totalAmount(), orderRequest.currency());
         Order savedOrder = orderRepository.save(newOrder);
@@ -59,12 +58,14 @@ public class OrderService {
     }
     //Cancel order
     @Transactional
+    @Observed(name = "order.cancel")
     public OrderResponse cancelOrder(Long orderId) {
         //Check order existence
         Order existingOrder = orderRepository.findByIdAndCustomerId(orderId, getCurrentCustomerId())
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
         log.info("Order cancellation initiated. orderId={}", existingOrder.getId());
         existingOrder.cancel();
+        orderRepository.save(existingOrder);
         log.info("Order cancelled. orderId={}", existingOrder.getId());
         return buildOrderResponse(existingOrder);
     }
@@ -73,6 +74,7 @@ public class OrderService {
      * Implements Resource Cloaking to ensure data isolation.
      */
     @Transactional(readOnly = true)
+    @Observed(name = "order.list.fetch")
     public PageOrderResponse getOrders(int page, int size, String orderState) {
         Long customerId = getCurrentCustomerId();
 
@@ -139,3 +141,4 @@ public class OrderService {
         );
     }
 }
+
