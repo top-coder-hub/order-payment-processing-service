@@ -16,13 +16,41 @@
 
     </appender>
 
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <pattern>
+                    <pattern>
+                        {
+                        "timestamp": "%d{yyyy-MM-dd HH:mm:ss.SSS,UTC}",
+                        "level": "%level",
+                        "service": "${spring.application.name:-order-payment-processing-service}",
+                        "traceId": "%X{traceId:-NA}",
+                        "spanId": "%X{spanId:-NA}",
+                        "requestId": "%X{requestId:-NA}",
+                        "userId": "%X{userId:-ANONYMOUS}",
+                        "logger": "%logger",
+                        "thread": "%t",
+                        "message": "%message",
+                        "exception": "%ex"
+                        }
+                    %n </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+    </appender>
 
-    <root level="INFO">
+    <springProfile name="local">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+        </root>
+    </springProfile>
 
-        <appender-ref ref="CONSOLE" />
-
-    </root>
-
+    <springProfile name="!local">
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE" />
+        </root>
+    </springProfile>
 
 
 </configuration>
