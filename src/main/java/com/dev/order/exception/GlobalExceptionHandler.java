@@ -5,6 +5,9 @@
  */
 package com.dev.order.exception;
 
+
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +35,12 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    private final Tracer tracer;
+
+    public GlobalExceptionHandler(Tracer tracer) {
+        this.tracer = tracer;
+    }
+
     private record ErrorResponse (
             boolean success,
             Integer status,
@@ -224,8 +233,12 @@ public class GlobalExceptionHandler {
 
     private String resolveTraceId() {
         String traceId = MDC.get("traceId");
-        if (traceId != null && !traceId.isBlank()) {
-            return traceId;
+        if (traceId != null && !traceId.isBlank()) return traceId;
+        if (tracer != null) {
+            Span currentSpan = tracer.currentSpan();
+            if (currentSpan != null && currentSpan.context() != null) {
+                return currentSpan.context().traceId();
+            }
         }
         return MDC.get("requestId");
     }
