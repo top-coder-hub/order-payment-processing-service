@@ -8,7 +8,6 @@ package com.dev.order.service;
 import com.dev.order.domain.Order;
 import com.dev.order.domain.OrderState;
 import com.dev.order.domain.Payment;
-import com.dev.order.domain.PaymentState;
 import com.dev.order.dto.PaymentRequest;
 import com.dev.order.dto.PaymentResponse;
 import com.dev.order.exception.*;
@@ -16,6 +15,10 @@ import com.dev.order.repository.OrderRepository;
 import com.dev.order.repository.PaymentRepository;
 import com.dev.order.security.AuthenticatedUser;
 import com.dev.order.security.RequestContext;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.annotation.Observed;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,59 +32,78 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
 
-    public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository) {
+    private final ObservationRegistry registry;
+
+    public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository, ObservationRegistry registry) {
         this.paymentRepository = paymentRepository;
         this.orderRepository = orderRepository;
+        this.registry = registry;
     }
     @Transactional
+    @Observed(name = "payment.process")
     public PaymentResult processPayment(Long orderId, PaymentRequest request, String idempotencyKey) {
         Optional<Payment> payment = paymentRepository.findByIdempotencyKey(idempotencyKey);
-        //Return the existing  payment status if payment already done
+        //1. Return the existing  payment status if payment already done
         if(payment.isPresent()) {
             Payment existingPayment = payment.get();
             //check if idempotencyKey belongs to the given orderId
             if(!existingPayment.getOrderId().equals(orderId)) {
                 throw new OrderNotFoundException(orderId);
             }
-            orderRepository.findByIdAndCustomerId(orderId, getCurrentCustomerId()).orElseThrow(
-                    () -> new OrderNotFoundException(orderId));
-            PaymentResponse existingPaymentResponse = buildPaymentResponse(existingPayment);
-            log.debug("Idempotency replay detected for orderId={}", orderId);
-            return new PaymentResult(existingPaymentResponse, false);
+            // Verify ownership via the associated order
+            if (!existingPayment.getOrder().getCustomerId().equals(getCurrentCustomerId())) {
+                throw new OrderNotFoundException(orderId);
+            }
+            log.info("Idempotency replay detected for orderId={}", orderId);
+            return new PaymentResult(buildPaymentResponse(existingPayment), false);
         }
 
-        //Check order existence or cloak as 404 (defensive)
+        //2. Defensive Ownership
         Order existingOrder = orderRepository.findByIdAndCustomerId(orderId, getCurrentCustomerId()).orElseThrow(
                 () -> new OrderNotFoundException(orderId));
 
-        //Check if existing order status is in CREATED state
+        //3. State Validation
         if(existingOrder.getOrderState() != OrderState.CREATED) {
             throw new InvalidOrderStateException(
                     "INVALID_ORDER_STATE", "Cannot process payment, because Order is currently not in 'CREATED' state.", orderId);
         }
 
-        //Check if existing order amount matches the new payment request amount
+        //4. Check if existing order amount matches the new payment request amount
         if(existingOrder.getTotalAmount().compareTo(request.amount()) != 0) {
             throw new OrderAmountMismatchException(orderId);
         }
 
-        //Check if existing order currency matches the new payment request currency
+        //5. Check if existing order currency matches the new payment request currency
         if(!Objects.equals(existingOrder.getCurrency(), request.currency())) {
             throw new PaymentCurrencyMismatchException(orderId);
         }
 
-        //persist new payment
-        log.info("Payment initiated. orderId={}", orderId);
-        Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), idempotencyKey);
-        newPayment.markAsCompleted();
-        Payment savedNewPayment = paymentRepository.save(newPayment);
-        log.info("Payment completed. paymentId={}, orderId={}", savedNewPayment.getPaymentId(), orderId);
+        //6. Orchestrated Execution with Observation
+        final Payment savedNewPayment = Observation.createNotStarted("payment.state.transition", registry)
+                .contextualName("process-payment-completion")
+                .highCardinalityKeyValue("order.id", orderId.toString())
+                .lowCardinalityKeyValue("status.target", "COMPLETED")
+                .observe(() -> {
+                    log.info("Payment transition initiated. orderId={}", orderId);
+                    Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), idempotencyKey);
+                    newPayment.markAsCompleted();
+                    Payment saved = paymentRepository.save(newPayment);
 
-        // Transition order state: CREATED → PAID
-        existingOrder.markAsPaid();
-        log.info("Order marked as PAID orderId={}", orderId);
-        PaymentResponse newPaymentResponse = buildPaymentResponse(savedNewPayment);
-        return new PaymentResult(newPaymentResponse, true);
+                    //Dynamically inject the DB-generated ID into the trace
+                    if(registry.getCurrentObservation() != null) {
+                        registry.getCurrentObservation().highCardinalityKeyValue("payment.id", saved.getPaymentId().toString());
+                    }
+
+                    log.info("Payment transition completed. paymentId={}, orderId={}", saved.getPaymentId(), orderId);
+
+                    existingOrder.markAsPaid();
+                    orderRepository.save(existingOrder);
+                    log.info("Order marked as PAID orderId={}", orderId);
+
+                    return saved; // Return the saved entity from the lambda
+                });
+
+        return new PaymentResult(buildPaymentResponse(savedNewPayment), true);
     }
     @Transactional(readOnly = true)
     public PaymentResult fetchPayment(Long paymentId) {
@@ -90,7 +112,7 @@ public class PaymentService {
                 .orElseThrow(() ->
                         new PaymentNotFoundException(paymentId));
 
-        // Fetch owning order or cloak as 404 (defensive)
+        // Ownership verification only. Fetch owning order or cloak as 404 (defensive)
         Order order = orderRepository.findByIdAndCustomerId(payment.getOrderId(), getCurrentCustomerId())
                 .orElseThrow(() ->
                         new PaymentNotFoundException(paymentId));
