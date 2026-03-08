@@ -5,7 +5,9 @@
  */
 package com.dev.order.service;
 
+import com.dev.order.audit.OrderAuditService;
 import com.dev.order.domain.Order;
+import com.dev.order.domain.OrderAction;
 import com.dev.order.domain.OrderState;
 import com.dev.order.dto.CreateOrderRequest;
 import com.dev.order.dto.OrderResponse;
@@ -17,6 +19,9 @@ import com.dev.order.repository.OrderRepository;
 import com.dev.order.security.AuthenticatedUser;
 import com.dev.order.security.RequestContext;
 import io.micrometer.observation.annotation.Observed;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,22 +35,56 @@ import java.util.Arrays;
 @Service
 @Slf4j
 public class OrderService {
+    private final Tracer tracer;
     private final OrderRepository orderRepository;
+    private final OrderAuditService orderAuditService;
     private static final int MAX_PAGE_SIZE = 100;
-    public OrderService(OrderRepository orderRepository) {
+    public OrderService(Tracer tracer, OrderRepository orderRepository, OrderAuditService orderAuditService) {
+        this.tracer = tracer;
         this.orderRepository = orderRepository;
+        this.orderAuditService = orderAuditService;
     }
     //Create order
     @Transactional
     @Observed(name = "order.create")
     public OrderResponse createOrder(CreateOrderRequest orderRequest) {
         Long customerId = getCurrentCustomerId();
+        String traceId = resolveTraceId();
         log.info("Order creation initiated. customerId={}", customerId);
-        //persist new order
-        Order newOrder = new Order(customerId, orderRequest.totalAmount(), orderRequest.currency());
-        Order savedOrder = orderRepository.save(newOrder);
-        log.info("Order created successfully. orderId={}", savedOrder.getId());
-        return buildOrderResponse(savedOrder);
+        Order savedOrder = null;
+        OrderState fromState = OrderState.CREATED;
+        OrderState toState   = OrderState.CREATED;
+        try {
+            //persist new order
+            Order newOrder = new Order(customerId, orderRequest.totalAmount(), orderRequest.currency());
+            savedOrder = orderRepository.save(newOrder);
+            log.info("Order created successfully. orderId={}", savedOrder.getId());
+            orderAuditService.recordOrderTransition(
+                    savedOrder.getId(),
+                    fromState,
+                    toState,
+                    OrderAction.PLACE_ORDER,
+                    customerId.toString(),
+                    traceId,
+                    null
+            );
+            return buildOrderResponse(savedOrder);
+        }
+        catch (Exception ex) {
+            log.error("Order creation failed for customerId={}, traceId={}", customerId, traceId, ex);
+            if(savedOrder != null) {
+                orderAuditService.recordOrderTransition(
+                        savedOrder.getId(),
+                        fromState,
+                        toState,
+                        OrderAction.PLACE_ORDER,
+                        customerId.toString(),
+                        traceId,
+                        "FAILURE: " + ex.getClass().getSimpleName() + ": " + ex.getMessage()
+                );
+            }
+            throw ex;
+        }
     }
     //Fetch order details
     @Transactional(readOnly = true)
@@ -61,13 +100,40 @@ public class OrderService {
     @Observed(name = "order.cancel")
     public OrderResponse cancelOrder(Long orderId) {
         //Check order existence
-        Order existingOrder = orderRepository.findByIdAndCustomerId(orderId, getCurrentCustomerId())
+        Long customerId = getCurrentCustomerId();
+        String traceId = resolveTraceId();
+        Order existingOrder = orderRepository.findByIdAndCustomerId(orderId, customerId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
         log.info("Order cancellation initiated. orderId={}", existingOrder.getId());
-        existingOrder.cancel();
-        orderRepository.save(existingOrder);
-        log.info("Order cancelled. orderId={}", existingOrder.getId());
-        return buildOrderResponse(existingOrder);
+        OrderState fromState = existingOrder.getOrderState();
+        try {
+            existingOrder.cancel();
+            orderRepository.save(existingOrder);
+            log.info("Order cancelled. orderId={}", existingOrder.getId());
+            orderAuditService.recordOrderTransition(
+                    existingOrder.getId(),
+                    fromState,
+                    existingOrder.getOrderState(),
+                    OrderAction.USER_CANCEL_REQUEST,
+                    customerId.toString(),
+                    traceId,
+                    null
+            );
+            return buildOrderResponse(existingOrder);
+        }
+        catch (Exception ex) {
+            log.error("Order cancellation failed for orderId={}, customerId={}, traceId={}", existingOrder.getId(), customerId, traceId, ex);
+            orderAuditService.recordOrderTransition(
+                    existingOrder.getId(),
+                    fromState,
+                    fromState,
+                    OrderAction.USER_CANCEL_REQUEST,
+                    customerId.toString(),
+                    traceId,
+                    "FAILURE: " + ex.getClass().getSimpleName() + ": " + ex.getMessage()
+            );
+            throw ex;
+        }
     }
     /**
      * Retrieves a paginated list of orders for the current authenticated customer.
@@ -128,6 +194,17 @@ public class OrderService {
             throw new UnauthorizedException("User not authenticated");
         }
         return user.userId();
+    }
+    private String resolveTraceId() {
+        String traceId = MDC.get("traceId");
+        if (traceId != null && !traceId.isBlank()) return traceId;
+        if (tracer != null) {
+            Span currentSpan = tracer.currentSpan();
+            if (currentSpan != null && currentSpan.context() != null) {
+                return currentSpan.context().traceId();
+            }
+        }
+        return MDC.get("requestId");
     }
     private OrderResponse buildOrderResponse(Order order) {
         return new OrderResponse(
