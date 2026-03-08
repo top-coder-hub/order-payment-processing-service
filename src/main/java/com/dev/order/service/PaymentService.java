@@ -50,7 +50,7 @@ public class PaymentService {
     @Transactional
     @Observed(name = "payment.process")
     public PaymentResult processPayment(Long orderId, PaymentRequest request, String idempotencyKey) {
-        Optional<Payment> payment = paymentRepository.findByIdempotencyKey(idempotencyKey);
+        Optional<Payment> payment = paymentRepository.findByIdempotencyKeyWithOrder(idempotencyKey);
         String traceId = resolveTraceId();
         Long customerId = getCurrentCustomerId();
         //1. Return the existing  payment status if payment already done
