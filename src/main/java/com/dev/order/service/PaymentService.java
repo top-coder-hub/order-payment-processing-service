@@ -53,7 +53,7 @@ public class PaymentService {
         Optional<Payment> payment = paymentRepository.findByIdempotencyKeyWithOrder(idempotencyKey);
         String traceId = resolveTraceId();
         Long customerId = getCurrentCustomerId();
-        //1. Return the existing  payment status if payment already done
+        //1. Idempotency Check
         if (payment.isPresent()) {
             return validateIdempotent(payment.get(), orderId, customerId, traceId);
         }
@@ -76,14 +76,18 @@ public class PaymentService {
         if (!Objects.equals(existingOrder.getCurrency(), request.currency())) {
             throw new PaymentCurrencyMismatchException(orderId);
         }
-
+        //Enrich the Root Observation immediately
+        final Observation root = registry.getCurrentObservation();
+        if(root != null) {
+            root.contextualName("process-payment-completion")
+                    .highCardinalityKeyValue("order.id", orderId.toString())
+                    .lowCardinalityKeyValue("status.target", "COMPLETED");
+        }
         //6. Orchestrated Execution with Observation
         Payment savedNewPayment = null;
         try {
+            //Child Observation: Payment Creation
             savedNewPayment = Observation.createNotStarted("payment.state.transition", registry)
-                    .contextualName("process-payment-completion")
-                    .highCardinalityKeyValue("order.id", orderId.toString())
-                    .lowCardinalityKeyValue("status.target", "COMPLETED")
                     .observe(() -> {
                         log.info("Payment transition initiated. orderId={}", orderId);
                         Payment newPayment = new Payment(existingOrder, request.amount(), existingOrder.getCurrency(), idempotencyKey);
@@ -94,16 +98,21 @@ public class PaymentService {
                                 PaymentState.PENDING,
                                 saved.getPaymentState(),
                                 PaymentAction.PAYMENT_SUCCESS,
-                                saved.getOrder().getCustomerId().toString(),
+                                customerId.toString(),
                                 traceId,
                                 null
                         );
                         //Dynamically inject the DB-generated ID into the trace
-                        if (registry.getCurrentObservation() != null) {
-                            registry.getCurrentObservation().highCardinalityKeyValue("payment.id", saved.getPaymentId().toString());
+                        if (root != null) {
+                            root.highCardinalityKeyValue("payment.id", saved.getPaymentId().toString());
                         }
-
                         log.info("Payment transition completed. paymentId={}, orderId={}", saved.getPaymentId(), orderId);
+                        return saved;
+                    });
+
+            //Child Observation: Order Update
+            Observation.createNotStarted("order.update.state", registry)
+                    .observe(() -> {
                         OrderState  fromState = existingOrder.getOrderState();
                         existingOrder.markAsPaid();
                         Order savedOrder = orderRepository.save(existingOrder);
@@ -117,8 +126,6 @@ public class PaymentService {
                                 traceId,
                                 null
                         );
-
-                        return saved; // Return the saved entity from the lambda
                     });
 
             return new PaymentResult(buildPaymentResponse(savedNewPayment), true);
