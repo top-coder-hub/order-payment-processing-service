@@ -55,22 +55,13 @@ public class FilterConfig {
             MDC.put(MDC_KEY, requestId);
             httpResponse.setHeader(REQUEST_ID_HEADER, requestId);
 
-            //TraceId for logging and audit across services
-            if (tracer != null) {
-                var traceContext = tracer.currentTraceContext().context();
-                if (traceContext != null) {
-                    MDC.put("traceId", traceContext.traceId());
-                }
-            }
-
-
             try {
                 //Continue the filter chain
                 chain.doFilter(request, response);
             } finally {
                 //Cleanup: Critical to prevent ThreadLocal memory leaks
                 RequestContext.clear();
-                MDC.clear(); //Clear ALL MDC keys at once (requestId, traceId, userId)
+                MDC.clear(); //Clear ALL MDC keys at once (requestId, traceId, userId, spanId)
             }
         });
 
