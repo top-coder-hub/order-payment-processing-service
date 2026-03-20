@@ -46,7 +46,9 @@ public class Order {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version;
     public Order(Long customerId, BigDecimal totalAmount, String currency) {
         this.customerId = customerId;
         this.totalAmount = totalAmount;
