@@ -11,6 +11,7 @@ import io.micrometer.tracing.Tracer;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.dao.DataAccessException;
@@ -36,13 +37,10 @@ import java.util.stream.Collectors;
 
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 @Slf4j
 public class GlobalExceptionHandler {
     private final Tracer tracer;
-
-    public GlobalExceptionHandler(Tracer tracer) {
-        this.tracer = tracer;
-    }
 
     private record ErrorResponse (
             boolean success,

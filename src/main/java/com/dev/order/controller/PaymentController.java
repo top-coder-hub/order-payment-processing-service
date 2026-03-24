@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,14 +26,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequiredArgsConstructor
 @Validated
 @RequestMapping("/api/v1")
 @Slf4j
 public class PaymentController {
     private final PaymentService paymentService;
-    public PaymentController(PaymentService paymentService) {
-        this.paymentService = paymentService;
-    }
+
     //create payment
     @PostMapping("/orders/{orderId}/payments")
     public ResponseEntity<PaymentResponse> createPayment(

@@ -21,6 +21,7 @@ import com.dev.order.security.RequestContext;
 import io.micrometer.observation.annotation.Observed;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,16 +35,13 @@ import java.util.Arrays;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class OrderService {
     private final Tracer tracer;
     private final OrderRepository orderRepository;
     private final OrderAuditService orderAuditService;
     private static final int MAX_PAGE_SIZE = 100;
-    public OrderService(Tracer tracer, OrderRepository orderRepository, OrderAuditService orderAuditService) {
-        this.tracer = tracer;
-        this.orderRepository = orderRepository;
-        this.orderAuditService = orderAuditService;
-    }
+
     //Create order
     @Transactional
     @Observed(name = "order.create")

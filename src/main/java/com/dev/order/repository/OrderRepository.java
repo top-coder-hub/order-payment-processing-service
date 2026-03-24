@@ -14,7 +14,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-@Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByIdAndCustomerId(Long id, Long customerId);
     //For the 'All' view
