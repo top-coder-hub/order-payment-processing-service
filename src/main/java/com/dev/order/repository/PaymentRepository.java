@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-@Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("""
     SELECT p 

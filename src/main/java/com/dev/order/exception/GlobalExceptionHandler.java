@@ -8,14 +8,18 @@ package com.dev.order.exception;
 
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
+import jakarta.persistence.OptimisticLockException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.transaction.TransactionException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -33,13 +37,10 @@ import java.util.stream.Collectors;
 
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 @Slf4j
 public class GlobalExceptionHandler {
     private final Tracer tracer;
-
-    public GlobalExceptionHandler(Tracer tracer) {
-        this.tracer = tracer;
-    }
 
     private record ErrorResponse (
             boolean success,
@@ -203,6 +204,18 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 false
                 );
+    }
+    // Concurrency: Optimistic locking conflict handling
+    @ExceptionHandler({OptimisticLockException.class, ObjectOptimisticLockingFailureException.class})
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(Exception ex) {
+        log.warn("Optimistic lock conflict detected. Resource modified concurrently. Exception={}, Message={}",
+                 ex.getClass().getSimpleName(), ex.getMessage());
+        return buildError(
+                HttpStatus.CONFLICT,
+                "OPTIMISTIC_LOCK_CONFLICT",
+                "The resource was updated by another process. Please refresh and try again.",
+                true
+        );
     }
     //Infrastructure / Unexpected Exceptions
     @ExceptionHandler(TimeoutException.class)

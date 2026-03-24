@@ -20,6 +20,7 @@ import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.annotation.Observed;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ import java.util.Optional;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
@@ -39,14 +41,6 @@ public class PaymentService {
 
     private final ObservationRegistry registry;
 
-    public PaymentService(PaymentRepository paymentRepository, OrderRepository orderRepository, PaymentAuditService paymentAuditService, OrderAuditService orderAuditService, Tracer tracer, ObservationRegistry registry) {
-        this.paymentRepository = paymentRepository;
-        this.orderRepository = orderRepository;
-        this.paymentAuditService = paymentAuditService;
-        this.orderAuditService = orderAuditService;
-        this.tracer = tracer;
-        this.registry = registry;
-    }
     @Transactional
     @Observed(name = "payment.process")
     public PaymentResult processPayment(Long orderId, PaymentRequest request, String idempotencyKey) {
